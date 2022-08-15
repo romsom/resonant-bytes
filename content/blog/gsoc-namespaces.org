@@ -6,7 +6,7 @@
 
 Even if you aren't a big fan of C++ and many of its features, one that you will still probably agree with in principle (not necessarily in implementation) is the concept of namespaces.
 
-For those who just tilted their head: Namespaces are a concept with which we can separate syntactic elements in our code like variables, functions and classes from one another much like we can separate files from one another using directories in a file system.
+For those who just tilted their head: Namespaces allow us to separate syntactic elements in our code e.g., variables, functions and classes from one another, like we can separate files from one another using directories in a file system.
 
 Let's assume for example, we have two fictional libraries which both implement MIDI messages:
 One of them can send and receive them via an operating system interface and the other one can do filtering and manipulation.
@@ -111,7 +111,7 @@ The ideal and clean solution would include:
   - HISE changing several hundred header files to restrict the use of namespace imports to the minimum
 
 Both, however, are very time consuming tasks and especially changing an API is something that should be done with lots of thought and care, as it will probably break lots of existing code bases.[fn:2]
-Faust may still do this in the future, but for now we need a quicker solution to be able to continue.
+Faust may still do this in the future, but for now we needed a quicker solution to be able to continue.
 
 * The Workaround: A Wrapper
 We discussed a few possible solutions and came to the conclusion that it would make the most sense to wrap =libfaust= into another library which exports all functions and types we need in a way that doesn't clash with the HISE code base.
