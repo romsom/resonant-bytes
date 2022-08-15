@@ -1,0 +1,2 @@
+#+title: ResonantBytes Blog
+#+type: post

@@ -1,0 +1,36 @@
+#+title: Parameter Mapping
+#+subtitle: Dealing with Competing Workflows
+#+date: 2022-07-01
+#+tags[]: gsoc, project planning
+#+draft: true
+
+
+* COMMENT Parameters in Faust
+  - link to docs
+  - createUserInterface()
+  - generated code calls virtual interface methods to setup parameters
+  - zone pointers
+  - pointers are stable and can be cached
+* Parameters in Faust
+
+* COMMENT Parameters in HISE
+  - ValueTree
+  - XML represenation
+  - Undo manager
+  - ValueTreeListener
+  - Parameter objects: created in listener callback
+* Parameters in HISE
+
+
+* COMMENT Parameter Mapping
+  - dummy UI class
+  - store meta information
+  - lookup after dsp instantiation
+  - create parameter tree nodes in constructor
+  - create parameter objects in ValueTreeListener callback
+  - parameters are defined in faust and exported to HISE
+  - slope of the control curve can be adjusted in HISE
+  - min/max can be altered from HISE, but have no effect on Faust code
+  - enable range checks in Faust to clip values outside the allowed range
+  - trigger warning/error when HISE range is bigger than Faust range
+* Parameter Mapping

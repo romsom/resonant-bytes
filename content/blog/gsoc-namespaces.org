@@ -1,0 +1,149 @@
+#+title: Namespaces and Libraries
+#+subtitle: Adventures from the land of clashing namespaces
+#+date: 2022-07-01
+#+tags[]: gsoc, project planning
+#+draft: true
+
+Even if you aren't a big fan of C++ and many of its features, one that you will still probably agree with in principle (not necessarily in implementation) is the concept of namespaces.
+
+For those who just tilted their head: Namespaces are a concept with which we can separate syntactic elements in our code like variables, functions and classes from one another much like we can separate files from one another using directories in a file system.
+
+Let's assume for example, we have two fictional libraries which both implement MIDI messages:
+One of them can send and receive them via an operating system interface and the other one can do filtering and manipulation.
+It's quite probable that they will have types which have a similar or even the same name.
+If we want to use both libraries in our program, we will probably have a place in out code where we want to convert one to the other or vice-versa and therefore need both definitions included.
+So to avoid name clashes with other libraries, library authors usually do one of two things:
+  - Put all exported functions, types and variables into a namespace that is unlikely to clash with another library e.g., the name of the project
+  - Prefix all exported functions, types and variables with e.g., the name of the project
+
+Using prefixes is a bit clunky, makes all the names longer and causes a lot of redundant typing.
+On the other hand it's universally supported by every language that supports symbol names (which is probably all of the useful ones), most notably C.
+More modern languages usually have some kind of namespace concept instead of a flat namespace for all globally visible symbols, among them C++, Go, Rust, Python etc.
+If your preferred language has namespaces, it's generally a very good idea to make use of them![fn:1]
+
+Choosing to use namespaces, the class definitions for our fictional example libraries could look like this:
+#+begin_src C++
+  namespace system_midi {
+      class MidiMessage {
+	  uint8_t *bytes;
+          size_t n_bytes;
+	  enum MidiMessageType type;
+	  // ...
+      }
+  }
+#+end_src
+
+#+begin_src C++
+  namespace midi_processor {
+      class MidiMessage {
+	  uint8_t *data;
+          size_t size;
+	  uint8_t channel;
+	  MidiType type;
+	  // ...
+      }
+  }
+#+end_src
+
+
+Using some imaginary APIs we can convert objects and pass them along from one library to the other:
+#+begin_src C++
+  #include <system_midi.h>
+  #include <midi_processor.h>
+
+  int main(int argc, char *argv[]) {
+      system_midi::MidiMessage *msg;
+      while (msg = system_midi::receive()) {
+          {
+              // convert system message to processor message
+              midi_processor::MidiMessage proc_msg;
+              proc_msg.size = msg->n_bytes;
+              proc_msg.bytes = msg->data;
+              // ....
+              if (midi_processor::filter_ch0(proc_msg)) {
+                  // ...
+              }
+          }
+          free(msg);
+          msg = nullptr;
+      }
+  }
+#+end_src
+
+So namespaces are very useful to keep separate things separate.
+Unfortunately, though, in reality APIs are not always implemented utilizing namespaces.
+In my project I had such a case, which caused me and my mentors some headaches and took some discussions to resolve in a way that everyone was not too unhappy with.
+So, what was the issue?
+
+* Namespace Issues in Practice
+I use =libfaust= to [[https://faustdoc.grame.fr/manual/embedding/][instantiate audio processing objects from Faust source code]] inside a special node in HISE's audio processing tree structure.
+In principle the code should have looked like this:
+#+begin_src C++
+  struct faust_wrapper {
+      // pointers to structs provided by libfaust
+      llvm_dsp_factory* jitFactory;
+      dsp *jitDsp; // type name: "dsp"
+
+      std::string faustCode;
+      // ...
+      void setup()
+      {
+          // instantiate jitFactory
+          // ...
+  
+          // instantiate the dsp object
+          jitDsp = jitFactory->createDSPInstance();
+          if (jitDsp == nullptr) {
+              std::cout << "Faust DSP instantiation" << std::endl;
+              return false;
+          }
+          return true;
+  }
+#+end_src
+
+Unfortunately, though, the two projects made some decisions in the past that made this straight-forward approach impossible:
+  - Faust chose not to to put their API inside a namespace
+  - HISE chose to import the =juce= namespace globally
+
+As a result there was a clash between the dsp class name =dsp= and the JUCE's =dsp= namespace.
+The ideal and clean solution would include:
+  - Faust changing their API and putting everything in the =faust= namespace
+  - HISE changing several hundred header files to restrict the use of namespace imports to the minimum
+
+Both, however, are very time consuming tasks and especially changing an API is something that should be done with lots of thought and care, as it will probably break lots of existing code bases.[fn:2]
+Faust may still do this in the future, but for now we need a quicker solution to be able to continue.
+
+* The Workaround: A Wrapper
+We discussed a few possible solutions and came to the conclusion that it would make the most sense to wrap =libfaust= into another library which exports all functions and types we need in a way that doesn't clash with the HISE code base.
+The preliminary result can be found here: [[https://github.com/romsom/faust_wrap][faust_wrap]]
+The idea is really simple:
+  - Copy the headers which contain the functions we need
+  - Put =namespace faust { ... }= around the function definitions
+  - Change the include guard
+  - Import both the new and original headers in a C++ source file and create stubs for every function we want to call from HISE
+  - Compile the code and link it to =libfaust= as either a static or shared library (or both)
+  - Use the wrapper headers in HISE and link it to our new library
+
+The stubs need to cast parameters and return values to match the wrapper types:
+#+begin_src C++
+namespace faust {
+  // ...
+  llvm_dsp* llvm_dsp_factory::createDSPInstance()
+  { return (llvm_dsp*)((::llvm_dsp_factory*)this)->createDSPInstance(); }
+  // ...
+  void llvm_dsp::buildUserInterface(UI* ui_interface)
+  { ((::llvm_dsp*)this)->buildUserInterface((::UI*) ui_interface); }
+  // ...
+}
+#+end_src
+
+   
+
+* Footnotes
+[fn:1] Except when you want to be compatible with C
+
+[fn:2] Fortunately in this case the fix would be trivial for existing code depending on the curent =libfaust= API: Add the line
+#+begin_src C++
+  using namespace faust;
+#+end_src
+after importing the Faust headers and everything will be visible again in the global namespace.

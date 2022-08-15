@@ -1,0 +1,5 @@
+* Prerequisites
+  - smart-tabs
+  - tab-width / indentation-width: 4
+  - lsp-mode
+    

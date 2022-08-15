@@ -1,0 +1,25 @@
+#+title: Tales of Underestimated Complexity
+#+subtitle: Always be prepared for your plans being overly optimistic
+#+date: 2022-06-23
+#+tags[]: gsoc, project planning
+#+draft: true
+
+* COMMENT Tales of Underestimated Complexity
+  - build system graphic
+  - implicit includes make it hard to find what's needed and where to look
+* Tales of Underestimated Complexity
+
+The first 1.5 weeks have passed and so far every goal I set myself took much longer than expected.
+I'm not disappointed, though, because my plans and schedules were intentionally optimistic.
+
+These are the road-blocks I encountered so far:
+  - After one day of digging through the code base I realized I was on the wrong branch.
+  - I took some time to rebase my previous efforts, but realized I should better start from scratch
+  - When I was on the new branch the unmodified HISE failed to build
+  - Also Projucer (the project management tool and build file generator) seg-faulted when I tried to export the build files
+  - And most importantly: I underestimated the complexity of the HISE code base
+
+One big contributing factor to that complexity is an interesting design decision in HISE:
+HISE is not only a library, but also a code generator.
+The general idea is that during development there is 
+# TODO insert table
