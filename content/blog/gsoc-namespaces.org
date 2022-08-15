@@ -24,24 +24,24 @@ If your preferred language has namespaces, it's generally a very good idea to ma
 Choosing to use namespaces, the class definitions for our fictional example libraries could look like this:
 #+begin_src C++
   namespace system_midi {
-      class MidiMessage {
-	  uint8_t *bytes;
-          size_t n_bytes;
-	  enum MidiMessageType type;
-	  // ...
-      }
+	  class MidiMessage {
+		  uint8_t *bytes;
+		  size_t n_bytes;
+		  enum MidiMessageType type;
+		  // ...
+	  }
   }
 #+end_src
 
 #+begin_src C++
   namespace midi_processor {
-      class MidiMessage {
-	  uint8_t *data;
-          size_t size;
-	  uint8_t channel;
-	  MidiType type;
-	  // ...
-      }
+	  class MidiMessage {
+		  uint8_t *data;
+		  size_t size;
+		  uint8_t channel;
+		  MidiType type;
+		  // ...
+	  }
   }
 #+end_src
 
@@ -52,21 +52,21 @@ Using some imaginary APIs we can convert objects and pass them along from one li
   #include <midi_processor.h>
 
   int main(int argc, char *argv[]) {
-      system_midi::MidiMessage *msg;
-      while (msg = system_midi::receive()) {
-          {
-              // convert system message to processor message
-              midi_processor::MidiMessage proc_msg;
-              proc_msg.size = msg->n_bytes;
-              proc_msg.bytes = msg->data;
-              // ....
-              if (midi_processor::filter_ch0(proc_msg)) {
-                  // ...
-              }
-          }
-          free(msg);
-          msg = nullptr;
-      }
+	  system_midi::MidiMessage *msg;
+	  while (msg = system_midi::receive()) {
+		  {
+			  // convert system message to processor message
+			  midi_processor::MidiMessage proc_msg;
+			  proc_msg.size = msg->n_bytes;
+			  proc_msg.bytes = msg->data;
+			  // ....
+			  if (midi_processor::filter_ch0(proc_msg)) {
+				  // ...
+			  }
+		  }
+		  free(msg);
+		  msg = nullptr;
+	  }
   }
 #+end_src
 
@@ -76,28 +76,29 @@ In my project I had such a case, which caused me and my mentors some headaches a
 So, what was the issue?
 
 * Namespace Issues in Practice
-I use =libfaust= to [[https://faustdoc.grame.fr/manual/embedding/][instantiate audio processing objects from Faust source code]] inside a special node in HISE's audio processing tree structure.
+I want to use =libfaust= to [[https://faustdoc.grame.fr/manual/embedding/][instantiate audio processing objects from Faust source code]] inside a special node in HISE's audio processing tree structure.
 In principle the code should have looked like this:
 #+begin_src C++
   struct faust_wrapper {
-      // pointers to structs provided by libfaust
-      llvm_dsp_factory* jitFactory;
-      dsp *jitDsp; // type name: "dsp"
+	  // pointers to structs provided by libfaust
+	  llvm_dsp_factory* jitFactory;
+	  dsp *jitDsp; // type name: "dsp"
 
-      std::string faustCode;
-      // ...
-      void setup()
-      {
-          // instantiate jitFactory
-          // ...
-  
-          // instantiate the dsp object
-          jitDsp = jitFactory->createDSPInstance();
-          if (jitDsp == nullptr) {
-              std::cout << "Faust DSP instantiation" << std::endl;
-              return false;
-          }
-          return true;
+	  std::string faustCode;
+	  // ...
+	  void setup()
+	  {
+		  // instantiate jitFactory
+		  // ...
+
+		  // instantiate the dsp object
+		  jitDsp = jitFactory->createDSPInstance();
+		  if (jitDsp == nullptr) {
+			  std::cout << "Faust DSP instantiation" << std::endl;
+			  return false;
+		  }
+		  return true;
+	  }
   }
 #+end_src
 
@@ -126,15 +127,15 @@ The idea is really simple:
 
 The stubs need to cast parameters and return values to match the wrapper types:
 #+begin_src C++
-namespace faust {
-  // ...
-  llvm_dsp* llvm_dsp_factory::createDSPInstance()
-  { return (llvm_dsp*)((::llvm_dsp_factory*)this)->createDSPInstance(); }
-  // ...
-  void llvm_dsp::buildUserInterface(UI* ui_interface)
-  { ((::llvm_dsp*)this)->buildUserInterface((::UI*) ui_interface); }
-  // ...
-}
+  namespace faust {
+	  // ...
+	  llvm_dsp* llvm_dsp_factory::createDSPInstance()
+	  { return (llvm_dsp*)((::llvm_dsp_factory*)this)->createDSPInstance(); }
+	  // ...
+	  void llvm_dsp::buildUserInterface(UI* ui_interface)
+	  { ((::llvm_dsp*)this)->buildUserInterface((::UI*) ui_interface); }
+	  // ...
+  }
 #+end_src
 
    
