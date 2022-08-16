@@ -8,6 +8,6 @@ clean:
 	rm -rf "$(PUBLISH_DIR)"/*
 
 publish:
-	scp -r "$(PUBLISH_DIR)" "resonant-bytes.de:www/resobyte"
+	find $(PUBLISH_DIR) -mindepth 1 -maxdepth 1 -exec scp -r "{}" "resonant-bytes.de:www/resobyte/" \;
 
 .PHONY: all clean publish
