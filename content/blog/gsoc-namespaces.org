@@ -2,7 +2,7 @@
 #+subtitle: Adventures from the land of clashing namespaces
 #+date: 2022-07-01
 #+tags[]: gsoc, project planning
-#+draft: true
+#+draft: false
 
 Even if you aren't a big fan of C++ and many of its features, one that you will still probably agree with in principle (not necessarily in implementation) is the concept of namespaces.
 
