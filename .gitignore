@@ -9,3 +9,5 @@
 *.pyc
 # build directories
 **/build
+# hugo release directory
+release
