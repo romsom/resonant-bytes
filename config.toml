@@ -1,4 +1,4 @@
-baseURL = 'http://resonant-bytes.de'
+baseURL = 'https://resonant-bytes.de'
 languageCode = 'en-us'
 title = 'ResonantBytes'
 theme = "risotto"
