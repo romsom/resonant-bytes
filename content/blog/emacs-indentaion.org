@@ -1,3 +1,8 @@
+#+title: Emacs: Indentation
+#+subtitle: Consistent and project specific code formatting rules with Emacs
+#+date: 2022-07-01
+#+tags[]: emacs
+#+draft: true
 * Prerequisites
   - smart-tabs
   - tab-width / indentation-width: 4
