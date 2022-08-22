@@ -12,6 +12,38 @@
   - zone pointers
   - pointers are stable and can be cached
 * Parameters in Faust
+Faust's parameters are mostly scalar values with some meta-data attached.
+# What about MIDI and OSC and soundfile?
+This meta-data includes:
+  - A name
+  - Minimum and maximum values
+  - An initial value
+  - Value resolution
+  - Parameter type
+
+They are updated once at the start of each frame and remain constant for every sample of the frame.
+
+For each parameter that is defined in a Faust DSP source file, the Faust compiler generates a method call to register the parameter to the outside world.
+We can see from the parameter types that Faust's parameters are intended to correspond to graphical widgets, e.g., sliders, potentiometers, buttons, drop-down-menus.
+This allows Faust architectures to generate a GUI from a DSP file alone, without any external information about the widget types and their layout.[fn:1]
+The UI class is not limited to just graphical representations with widgets, though.
+It is up to the creator of the architecture file, to decide what it is that changes the parameters.
+There, in the architecture file we have to implement those virtual methods in a class derived from [[https://faustdoc.grame.fr/manual/architectures/#ui-architecture-modules][UI]].
+
+Let's take a look at the signature of the method for a very common parameter type, the =hslider=:
+#+begin_src C++
+  virtual void addHorizontalSlider(const char* label, REAL* zone, REAL init, REAL min, REAL max, REAL step)
+#+end_src
+Apart from the label we can see the meta-data mentioned earlier: =init=, =min=, =max=, =step=.
+The parameter value is behind the pointer =zone=.
+It's the architecture file's job to handle input for each value and update the value accordingly.
+The pointer address is supposed to be stable after initialization [fn:2], which will be useful later.
+
+Most parameters can be used as a numerical value in Faust DSP code, but there are some special parameters which behave differently.
+The corresponding UI methods are:
+#+begin_src C++
+  virtual void addSoundfile(const char* label, const char* filename, Soundfile** sf_zone);
+#+end_src
 
 * COMMENT Parameters in HISE
   - ValueTree
@@ -20,6 +52,7 @@
   - ValueTreeListener
   - Parameter objects: created in listener callback
 * Parameters in HISE
+
 
 
 * COMMENT Parameter Mapping
@@ -34,3 +67,8 @@
   - enable range checks in Faust to clip values outside the allowed range
   - trigger warning/error when HISE range is bigger than Faust range
 * Parameter Mapping
+
+* Footnotes
+[fn:2] Apparently there have been experiments to reallocate parameter memory during runtime, but the benefits didn't justify the costs.
+
+[fn:1] There are architectures which do allow that though, to be able to create better UIs.
