@@ -1,0 +1,6 @@
+#+title: How the HISE Project Gets Built
+#+subtitle: Projucer, Headers and Build Times
+#+date: 2022-08-22
+#+tags[]: gsoc22, hise, projucer, build system
+#+draft: true
+

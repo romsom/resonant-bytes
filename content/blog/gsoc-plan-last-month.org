@@ -1,0 +1,20 @@
+#+title: Planning the Last Month of GSoC
+#+subtitle: 
+#+date: 2022-08-22
+#+tags[]: gsoc22
+#+draft: true
+
+* Remaining Tasks
+  - File Loading
+    - [X] Scoped File Access
+    - [X] Fill Drop Down Menu
+    - [ ] Handle File Selection
+      - [-] sourceId property
+    - [ ] Reload/compile Faust Source File
+      - [ ] sourceId listener: updateSourceId
+      - [ ] setWorkbench()
+  - Soundfile
+  - Static Compilation
+  - FaustPathFactory: Draw Faust Logo in Node
+
+  - How not to get side-tracked by unintuitive code that needs cleanup
