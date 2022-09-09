@@ -1,0 +1,77 @@
+#+title: Static Compilation of Faust nodes
+#+subtitle: Moving complexity from execution time to compile time
+#+date: 2022-09-09
+#+tags[]: gsoc, jit, code generation, c++ templates
+#+draft: false
+* Static Compilation
+The main goal of my project is to allow creators of HISE instruments to incorporate Faust code into their finished product.
+Up until this point my focus was on just-in-time compilation in order to aid rapid development:
+You can change the Faust source code, click reload and now the same DSP node behaves differently.
+While this is really helpful during development, for the finalized product this approach has some drawbacks:
+  - There is some latency when loading the plugin until the code will have been compiled
+  - Even though the code doesn't change anymore, it will be recompiled every time [fn:1]
+  - The compiler (llvm) needs to be installed on every system the instrument will be used
+
+For those reasons we decided early on to have a statically compiled alternative for when the instrument is ready to be released.
+The basic idea is:
+  - Compile the Faust code to C++
+  - Wrap the generated code into a HISE DSP node
+  - Export a project archive which includes the generated code for each distinct Faust source that is used in the project
+
+The Faust compiler can do the transpilation to C++, but instead we can also [[https://faustdoc.grame.fr/manual/embedding/#additional-functions][use libfaust to do the same]] without having to handle spawning the compiler process:
+#+begin_src C++
+  generateAuxFilesFromString(const std::string& name_app, const std::string& dsp_content, int argc,
+			     const char* argv[], std::string& error_msg);
+#+end_src
+
+When we want to export our project, we can replace the call to =createDSPFactoryFromString()= with a call to =generateAuxFilesFromString()= and put the files into the export directory.
+HISE will include all files in that directory and make our generated DSP class visible.
+#+begin_src C++
+  class _mydsp : public dsp {
+	  // ...
+  };
+#+end_src
+
+This class implements the =dsp= interface just like the =llvm_dsp=-object which =createDSPInstance()= returns in the JIT version.
+To make a node which uses this class internally visible in HISE, we need to have its type defined in a specific namespace.
+To accomplish this for a number of generated classes, templates will be our tool of choice.
+In the end we want to have a wrapper node, which takes the name of the generated class as a template parameter.
+#+begin_src C++
+  namespace TODO!! {
+	  using mydsp = faust_node<_mydsp>;
+  }
+#+end_src
+For each generated DSP class we need to generate a header file similar to the above, where we define a node type using the =faust_node<>= class template.
+This node shares a lot of logic with the previous JIT implementation, so instead of writing it from scratch, we divide the old JIT =faust_node= into a JIT-specific part and a base part, which is the parent class for both variants.
+#+begin_src C++
+  template <class FaustDsp>
+  class _faust_node: faust_base_node {
+	  _faust_node(DspNetwork* n, ValueTree v):
+		  faust_node_base(n, v),
+		  faust(std::make_unique((faust_base_wrapper*)(new faust_wrapper<FaustDsp>)))
+	  { }		      
+  };
+
+#+end_src
+
+We pass along the template parameter =FaustDsp= to a templated version of =faust_wrapper=, which we separate similarly to =faust_node= into a JIT-specific part and a non-JIT-specific part.
+Here we instantiate the generated =FaustDsp= class and assign it to a pointer with the purely abstract type =dsp= which we wrapped previously into the =faust= namespace.
+#+begin_src C++
+  template <class FaustDsp>
+  struct faust_wrapper : faust_base_wrapper {
+	  faust_wrapper():
+		  faust_base_wrapper(),
+		  faustDsp((::faust::dsp*)(new FaustDsp))
+	  { }
+
+	  ~faust_wrapper() {
+		  delete (FaustDsp*)faustDsp;
+	  }
+  };
+#+end_src
+
+The remaining code in faust_wrapper remains mostly the same, especially =process()=, which handles the input buffer and calls the virtual =compute()= method of our =FaustDsp= class, which implements the DSP algorithm.
+
+* Footnotes
+
+[fn:1] There may be the benefit of having natively compiled and optimized code available, which could be faster than one with a more generic optimization level. To make this feasible, caching of the compiled code needs to be introduced, which I will take a look at in another post.
