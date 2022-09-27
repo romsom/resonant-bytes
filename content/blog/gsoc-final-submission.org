@@ -77,6 +77,11 @@ $ git diff linux-reduce-warnings | diffstat
   - Open Faust Directory in File Manager
   - Open Faust File in External Editor
   - Recompile
+*** Faust Node creates an empty file =.dsp= in the faust code directory
+*** Error Messaging
+Lots of =DBG= and =std::cout=, =std::cerr= atm
+**** Especially: Faust Compiler Errors
+Should go to HISE Console
 ** Windows
 *** LLVM-JIT segfaults When Calling Any Function Into the Faust llvm-dsp Interface
 *** Interpreter Backend Fails to Build Because of Missing Function Symbols
