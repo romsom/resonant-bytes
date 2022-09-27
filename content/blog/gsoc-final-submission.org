@@ -1,0 +1,89 @@
+#+title: GSoC: Final Submission
+#+subtitle: 
+#+date: 2022-09-27
+#+tags[]: GSoC Faust HISE
+#+draft: true
+* Final Submission
+Over the last months I have been working on integrating the Faust DSP programming language into the HISE virtual instrument framework.
+At the time of this post, we are still working on merging [[https://github.com/romsom/HISE/tree/etxzat-develop][the fork with my work]] into [[https://github.com/christophhart/HISE/tree/develop][upstream HISE]].[fn:1]
+
+* Code Change Summary
+My work focused on creating the 4 =hi_faust*= modules, but there were other parts of the code base, I had to work on as well.
+Here is a diffstat as an overview, which I will highlight the most important parts of in a bit:
+  - =hi_faust_types=: Syntactic wrapper for =libfaust='s type headers, because of [[https://resonant-bytes.de/blog/gsoc-namespaces/][namespace issues]].
+  - =hi_faust_lib=: Syntactic wrapper for =libfaust= code (depends on =libfaust=)
+  - =hi_faust=: Static wrapper code to instantiate generated or JITed code (depends on =hi_faust_types=)
+  - =hi_faust_jit=: Wrapper for JIT, interpreter and static code generator (depends on =hi_faust_lib= and =hi_faust=)
+  - =hi_backend=, =hi_snex=: Faust-specific additions to the code export functionality were made
+  - =projects=: Build instructions were modified to include and configure the new modules[fn:2]
+  - All other changes are rather small and very specific
+
+#+begin_example
+$ git diff linux-reduce-warnings | diffstat
+ .gitignore                                                 |    4 
+ JUCE/modules/juce_gui_extra/misc/juce_LiveConstantEditor.h |    2 
+ hi_backend/backend/ProjectDllTemplate.cpp                  |   14 +
+ hi_backend/hi_backend.h                                    |    2 
+ hi_backend/snex_workbench/WorkbenchProcessor.cpp           |   48 +++++
+ hi_dsp_library/node_api/helpers/node_ids.h                 |    2 
+ hi_faust/FaustStaticWrapper.h                              |  109 ++++++++++++
+ hi_faust/FaustUI.h                                         |  296 ++++++++++++++++++++++++++++++++++
+ hi_faust/FaustWrapper.h                                    |  134 +++++++++++++++
+ hi_faust/hi_faust.h                                        |   72 ++++++++
+ hi_faust_jit/FaustJitNode.cpp                              |  219 +++++++++++++++++++++++++
+ hi_faust_jit/FaustJitNode.h                                |   56 ++++++
+ hi_faust_jit/FaustMenuBar.h                                |  165 +++++++++++++++++++
+ hi_faust_jit/FaustWrapper.h                                |  302 +++++++++++++++++++++++++++++++++++
+ hi_faust_jit/hi_faust_jit.cpp                              |    4 
+ hi_faust_jit/hi_faust_jit.h                                |   81 +++++++++
+ hi_faust_lib/faust_wrap/dsp/interpreter-dsp.cpp            |  114 +++++++++++++
+ hi_faust_lib/faust_wrap/dsp/interpreter-dsp.h              |  344 ++++++++++++++++++++++++++++++++++++++++
+ hi_faust_lib/faust_wrap/dsp/libfaust.cpp                   |   25 ++
+ hi_faust_lib/faust_wrap/dsp/libfaust.h                     |  124 ++++++++++++++
+ hi_faust_lib/faust_wrap/dsp/llvm-dsp.cpp                   |  143 ++++++++++++++++
+ hi_faust_lib/faust_wrap/dsp/llvm-dsp.h                     |  512 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ hi_faust_lib/faust_wrap/export.h                           |   52 ++++++
+ hi_faust_lib/hi_faust_lib.cpp                              |    3 
+ hi_faust_lib/hi_faust_lib.h                                |   60 +++++++
+ hi_faust_types/faust_wrap/dsp/dsp.h                        |  304 +++++++++++++++++++++++++++++++++++
+ hi_faust_types/faust_wrap/export.h                         |   52 ++++++
+ hi_faust_types/faust_wrap/gui/UI.h                         |   90 ++++++++++
+ hi_faust_types/faust_wrap/gui/meta.h                       |   40 ++++
+ hi_faust_types/hi_faust_types.h                            |   55 ++++++
+ hi_modules/hi_modules.h                                    |    3 
+ hi_modules/hi_modules_02.cpp                               |    1 
+ hi_modules/nodes/HiseNodeFactory.cpp                       |    4 
+ hi_scripting/scripting/scriptnode/api/NodeBase.cpp         |   12 +
+ hi_scripting/scripting/scriptnode/api/NodeBase.h           |    1 
+ hi_snex/hi_snex.h                                          |    1 
+ hi_snex/snex_cpp_builder/snex_jit_ValueTreeBuilder.cpp     |   19 ++
+ hi_snex/snex_cpp_builder/snex_jit_ValueTreeBuilder.h       |   12 +
+ projects/plugin/HISE.jucer                                 |   12 -
+ projects/standalone/HISE Standalone.jucer                  |  584 +++++++++++++++++++++++++++++++++++----------------------------------
+ projects/standalone/JuceLibraryCode/AppConfig.h            |   54 ++++++
+ projects/standalone/JuceLibraryCode/JuceHeader.h           |    9 -
+ 42 files changed, 3840 insertions(+), 300 deletions(-)
+#+end_example
+
+
+* How to Build on Linux
+* Remaining Issues and Missing Features
+** General
+*** Control Knobs Don't Animate in Release Build
+*** Soundfile Support is Missing
+*** HISE IDE Integration is Missing
+*** FaustMenuBar Needs More Buttons
+  - Import Faust File
+  - Open Faust Directory in File Manager
+  - Open Faust File in External Editor
+  - Recompile
+** Windows
+*** LLVM-JIT segfaults When Calling Any Function Into the Faust llvm-dsp Interface
+*** Interpreter Backend Fails to Build Because of Missing Function Symbols
+** macOS
+*** Build Errors
+
+* Footnotes
+[fn:1] Both are not the =main=/=master= branch!
+
+[fn:2] The Projucer tool rewrites the project files on save, therefore the diffstat doesn't represent the actual amount of changes to =HISE Standalone.jucer=.
