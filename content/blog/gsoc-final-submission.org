@@ -73,10 +73,11 @@ $ git diff linux-reduce-warnings | diffstat
 *** Soundfile Support is Missing
 *** HISE IDE Integration is Missing
 *** FaustMenuBar Needs More Buttons
-  - Import Faust File
-  - Open Faust Directory in File Manager
-  - Open Faust File in External Editor
-  - Recompile
+  - [X] Import Faust File
+  - [X] Import Faust Library
+  - [ ] Open Faust Directory in File Manager
+  - [X] Open Faust File in External Editor
+  - [X] Recompile
 *** Faust Node creates an empty file =.dsp= in the faust code directory
 *** Error Messaging
 Lots of =DBG= and =std::cout=, =std::cerr= atm
