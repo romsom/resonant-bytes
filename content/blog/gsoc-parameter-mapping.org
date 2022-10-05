@@ -32,7 +32,7 @@ There, in the architecture file we have to implement those virtual methods in a 
 
 Let's take a look at the signature of the method for a very common parameter type, the =hslider=:
 #+begin_src C++
-  virtual void addHorizontalSlider(const char* label, REAL* zone, REAL init, REAL min, REAL max, REAL step)
+  virtual void addHorizontalSlider(const char* label, REAL* zone, REAL init, REAL min, REAL max, REAL step);
 #+end_src
 Apart from the label we can see the meta-data mentioned earlier: =init=, =min=, =max=, =step=.
 The parameter value is behind the pointer =zone=.
