@@ -1,0 +1,50 @@
+#+title: HISE: Other Platforms: macOS
+#+subtitle: 
+#+date: 2022-09-27
+#+tags[]: GSoC HISE JUCE macOS
+#+draft: true
+* Intro
+I'm a linux developer and free software enthusiast, but 
+* Setting up a VM with Libvirt
+
+Setting up the macOS VM on QEMU/KVM was surprisingly easy.
+My entry point was this [[https://www.nicksherlock.com/2021/10/installing-macos-12-monterey-on-proxmox-7/][tutorial]], which I didn't follow completely, because there was another, more streamlined option.
+The tutorial links to this [[https://github.com/thenickdude/OSX-KVM][repository]], which includes everything you need, especially:
+Tools to download the system restore image, the not-so-secret "secret OSK string", which macOS wants to boot, and even a machine description for =libvirt=.
+In the machine description (=macOS-libvirt-Catalina.xml=) as well as in the readme there are instruction, which boil down to:
+  - Run the download tool and tell it which version you want, it'll provide the =BaseImage.dmg= file, which basically is the recovery drive
+  - Change all =CHANGEME= strings in the file, so the paths point to your local checkout of the Repo
+  - Create a harddrive image for the installation:
+    #+begin_src sh
+      $ qemu-img -f qcow2 mac_hdd_ng.img 256G
+    #+end_src
+
+After that you can import the VM into =libvirt=:
+#+begin_src sh
+$ virsh define macOS-libvirt-Catalina.xml
+#+end_src
+
+Note: The harddrive image and some other files are still in the repository and not under =libvirt='s management.
+It's absolutely possible to hand those files to =libvirt=, too, but this quick-and-dirty solution was good enough for me right now.
+
+The VM should now show up under =virsh list --all=, =virt-manager=, =gnome-boxes=.
+If it doesn't, check your connect URI![fn:1]
+In my case =virsh= and =gnome-boxes= used =qemu:///session=, but =virt-manager= used =qemu:///system=, which look similar enough, so I didn't notice immediately.
+
+After that, you should be able to boot into the VM.
+Maybe you need to tweak the CPU settings as described in the tutorial and readme and re-define with =virsh=, but on my Zen 3 Ryzen it just worked.
+
+When you boot into the recovery (macOS Base System), you need to partition and format the virtual drive first.
+You can then proceed with the rather lengthy installation.
+At some point it should reboot into the system being installed and continue the installation.[fn:2]
+
+* Installing the Necessary Tools
+The first thing to install, obviously, was [[https://brew.sh][the brew package manager]].
+With that there followed:
+  - git
+  - tmux
+* Footnotes
+
+[fn:1] =-c URI= for =virsh= and =virt-manager=, have a look at the manpage!
+
+[fn:2] For me the installation didn't work until I reset the NVRAM to all 0x00 bytes and also selected "HFS+ (Journaled, non-case-sensitive)". I didn't try each one alone, so I can't say for sure what was the necessary change.
