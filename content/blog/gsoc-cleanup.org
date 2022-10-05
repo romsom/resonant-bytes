@@ -1,0 +1,195 @@
+#+title: Compiler Warnings
+#+subtitle: Bring Out the Mop
+#+date: 2022-08-30
+#+tags[]: gsoc22
+#+draft: true
+
+* My View on Compiler Warnings
+I hate compiler warnings!
+No I love them!
+Okay... let's breath for a moment.
+I hate when I see them, but I love that they're there.
+They tell me when I screwed something up and I shouldn't ignore them.
+But they are so many and everything still works!
+Let's ignore them for now.
+
+* It's Time to Shave Yaks again
+First of all: HISE is multiplatform.
+Multiplatform is hard.
+Think of every corner case you have.
+Now multiply by the number of platforms.
+Them add the same amount for when things on each platform aren't so bad on their own, but different enough between them to ruin your day.
+
+I develop on Linux and Linux isn't a first tier platform for HISE, but it compiles and runs pretty well all things considered.
+But it produces a lot of screens full of compiler warnings when building.
+This is not HISE's fault, but it has to change.
+
+* Why do I care?
+To be honest, I probably have "better" things to do, than fixing warnings.
+I could be implementing features, fix "real" bugs, write blog posts[fn:1].
+But the thing is:
+Real bugs hide behind compiler warnings.
+They're just warnings, so they are often ignored.
+But the issues the warnings try to point to can still be very real.
+If the compiler tells me that =control flow reached the end of a non-void function=, that means there is a path where the function returns whatever may happen to be in the ABI's register or memory location of choice at the time.
+Most probably nothing valid.
+It may be that other circumstances lead to the path never actually being executed, but it may not.
+Also, if there is a wall of warnings already, I don't seem to care about the warnings I generate anymore, which is bad.
+So let's fix that!
+
+* Compiler Warnings in HISE
+There are a number of types of warning HISE generates when building.
+The most annoying ones are the ones that come from headers, because they appear for my own compilation units every time I update my code, even though I didn't cause them.[fn:2]
+So those are the most important ones to get rid of.
+
+** Invalid Use of Incomplete Type
+Forward declarations of types can cause them.
+When we forward declare a type, we can only use it as a pointer until the final definition follows, but sometimes that's fine, especially in headers.
+We can't do anything with it that needs to know its internal structure.
+That means we can't access members, allocate memory for it, call methods.
+Except sometimes we can.
+
+.... Text about why sometimes it's an error and sometimes only a warning ....
+
+To get rid of the warnings we can move the invalid access out of the header into a C++ source file that has access to the full definition of the type.
+Sometimes we can move the whole method that does the call.
+But that doesn't work for template classes, unfortunately, because they need their complete definition available wherever they are used with concrete template arguments.
+A workaround is to give the templated class a non-templated base class and wrap the offending access there where we can remove it from the header.
+
+*** Example
+#+begin_export ascii
+~/.../hi_components/floating_layout >>> rg getParentShell *.h
+SnexFloatingTiles.h
+179:			content->setBounds(getParentShell()->getContentBounds());
+237:		auto b = FloatingTileContent::getParentShell()->getContentBounds();
+
+MiscFloatingPanelTypes.h
+653:		component->setBounds(getParentShell()->getContentBounds());
+
+FloatingTile.h
+907:			if (t->getParentShell()->getLayoutData().getID() == id || id.isNull())
+
+FloatingTileContent.h
+514:	FloatingTile* getParentShell()
+536:	const FloatingTile* getParentShell() const 
+
+BackendPanelTypes.h
+371:		auto area = getParentShell()->getContentBounds();
+387:		auto area = getParentShell()->getContentBounds();
+#+end_export
+
+*** Find Suitable Location
+There are a number of headers which call a method on the value returned by =getParentShell()=, but most calls are to =getContentBounds()=.
+If we can find a common parent class, that could be a suitable location to wrap that call ideally for all occurences.
+The method =getParentShell()= is defined in two variants in =FloatingTileContent.h=, with =const= and modifying access and returns corresponding variants of =FloatingTile*=.
+
+| Occurence                      | Method             | Class                   | Templated? | Parent Classes                                        |
+|--------------------------------+--------------------+-------------------------+------------+-------------------------------------------------------|
+| =SnexFloatingTiles.h:179=      | =resized()=        | =SnexWorkbenchPanel=    | yes        | =FloatingTileContent=                                 |
+|                                |                    |                         |            | =juce::Component=                                     |
+|                                |                    |                         |            | =snex::ui::WorkbenchData::Listener=                   |
+|                                |                    |                         |            | =snex::ui::WorkbenchManager::WorkbenchChangeListener= |
+| =SnexFloatingTiles.h:237=      | =resized()=        | =SnexEditorPanel=       | no         | same as =SnexWorkbenchPanel=                          |
+|--------------------------------+--------------------+-------------------------+------------+-------------------------------------------------------|
+| =MiscFloatingPanelTypes.h:653= | =resized()=        | =GenericPanel=          | yes        | =FloatingTileContent=                                 |
+|                                |                    |                         |            | =juce::Component=                                     |
+|--------------------------------+--------------------+-------------------------+------------+-------------------------------------------------------|
+| =FloatingTile.h:907=           | =findTileWithId()= | =FloatingTileHelpers=   | yes        | none                                                  |
+|--------------------------------+--------------------+-------------------------+------------+-------------------------------------------------------|
+| =BackendPanelTypes.h:371=      | =resized()=        | =ExternalFileTableBase= | yes        | =FloatingTileContent=                                 |
+|                                |                    |                         |            | =juce::Component=                                     |
+|                                |                    |                         |            | ...                                                   |
+| =BackendPanelTypes.h:387=      | =paint()=          | =ExternalFileTableBase= |            |                                                       |
+
+That's a nice result!
+Most occurences are in classes which inherit from =FloatingTileContent= and that seems like a good place to provide access from.
+Let's add a method to it:
+#+begin_src C++
+  Rectangle<int> getParentContentBounds();
+#+end_src
+#+begin_src C++
+  Rectangle<int> FloatingTileContent::getParentContentBounds() {
+      return getParentShell()->getContentBounds();
+  }
+#+end_src
+
+*** Example 2
+#+begin_export ascii
+~/.../scriptnode/snex_nodes >>> rg getScriptProcessor *.h
+SnexSource.h
+490:				auto wb = static_cast<snex::ui::WorkbenchManager*>(original.getParentNode()->getScriptProcessor()->getMainController_()->getWorkbenchManager());
+
+SnexOscillator.h
+69:			auto wb = static_cast<snex::ui::WorkbenchManager*>(parent.getParentNode()->getScriptProcessor()->getMainController_()->getWorkbenchManager());
+
+SnexNode.h
+160:			auto wb = static_cast<snex::ui::WorkbenchManager*>(parent.getParentNode()->getScriptProcessor()->getMainController_()->getWorkbenchManager());
+
+SnexMidi.h
+76:			auto wb = static_cast<snex::ui::WorkbenchManager*>(parent.getParentNode()->getScriptProcessor()->getMainController_()->getWorkbenchManager());
+#+end_export
+
+
+** Control-flow Reached the End of Non-void Function
+** Invalid Offset
+#+begin_export ascii
+$ cat build.log | perl -e 'my @m; while(<>) {/.*({aka.*}).*/; print "$1\n";}' | sort -u
+
+{aka ‘scriptnode::wrap::data<scriptnode::analyse::analyse_base<scriptnode::analyse::Helpers::FFT>, scriptnode::data::dynamic::displaybuffer>’}
+{aka ‘scriptnode::wrap::data<scriptnode::analyse::analyse_base<scriptnode::analyse::Helpers::GonioMeter>, scriptnode::data::dynamic::displaybuffer>’}
+{aka ‘scriptnode::wrap::data<scriptnode::analyse::analyse_base<scriptnode::analyse::Helpers::Oscilloscope>, scriptnode::data::dynamic::displaybuffer>’}
+{aka ‘scriptnode::wrap::data<scriptnode::control::cable_pack<scriptnode::parameter::dynamic_base_holder>, scriptnode::data::dynamic::sliderpack>’}
+{aka ‘scriptnode::wrap::data<scriptnode::control::cable_table<scriptnode::parameter::dynamic_base_holder>, scriptnode::data::pimpl::dynamicT<hise::SampleLookupTable> >’}
+{aka ‘scriptnode::wrap::data<scriptnode::control::clone_pack<scriptnode::parameter::clone_holder>, scriptnode::data::dynamic::sliderpack>’}
+{aka ‘scriptnode::wrap::data<scriptnode::control::pack_resizer, scriptnode::data::dynamic::sliderpack>’}
+{aka ‘scriptnode::wrap::data<scriptnode::core::extra_mod, scriptnode::data::dynamic::displaybuffer>’}
+{aka ‘scriptnode::wrap::data<scriptnode::core::file_player<1>, scriptnode::data::dynamic::audiofile>’}
+{aka ‘scriptnode::wrap::data<scriptnode::core::file_player<256>, scriptnode::data::dynamic::audiofile>’}
+{aka ‘scriptnode::wrap::data<scriptnode::core::global_mod, scriptnode::data::dynamic::displaybuffer>’}
+{aka ‘scriptnode::wrap::data<scriptnode::core::granulator, scriptnode::data::dynamic::audiofile>’}
+{aka ‘scriptnode::wrap::data<scriptnode::core::oscillator<1>, scriptnode::data::dynamic::displaybuffer>’}
+{aka ‘scriptnode::wrap::data<scriptnode::core::oscillator<256>, scriptnode::data::dynamic::displaybuffer>’}
+{aka ‘scriptnode::wrap::data<scriptnode::core::peak, scriptnode::data::dynamic::displaybuffer>’}
+{aka ‘scriptnode::wrap::data<scriptnode::core::pitch_mod, scriptnode::data::dynamic::displaybuffer>’}
+{aka ‘scriptnode::wrap::data<scriptnode::core::ramp<1, true>, scriptnode::data::dynamic::displaybuffer>’}
+{aka ‘scriptnode::wrap::data<scriptnode::core::ramp<256, true>, scriptnode::data::dynamic::displaybuffer>’}
+{aka ‘scriptnode::wrap::data<scriptnode::core::recorder, scriptnode::data::dynamic::audiofile>’}
+{aka ‘scriptnode::wrap::data<scriptnode::core::table, scriptnode::data::pimpl::dynamicT<hise::SampleLookupTable> >’}
+{aka ‘scriptnode::wrap::data<scriptnode::dynamics::dynamics_wrapper<chunkware_simple::SimpleComp>, scriptnode::data::dynamic::displaybuffer>’}
+{aka ‘scriptnode::wrap::data<scriptnode::dynamics::dynamics_wrapper<chunkware_simple::SimpleGate>, scriptnode::data::dynamic::displaybuffer>’}
+{aka ‘scriptnode::wrap::data<scriptnode::dynamics::dynamics_wrapper<chunkware_simple::SimpleLimit>, scriptnode::data::dynamic::displaybuffer>’}
+{aka ‘scriptnode::wrap::data<scriptnode::dynamics::envelope_follower, scriptnode::data::dynamic::displaybuffer>’}
+{aka ‘scriptnode::wrap::data<scriptnode::filters::convolution, scriptnode::data::dynamic::audiofile>’}
+{aka ‘scriptnode::wrap::data<scriptnode::filters::FilterNodeBase<hise::MultiChannelFilter<hise::LadderSubType>, 1>, scriptnode::data::pimpl::dynamicT<hise::FilterDataObject> >’}
+{aka ‘scriptnode::wrap::data<scriptnode::filters::FilterNodeBase<hise::MultiChannelFilter<hise::LadderSubType>, 256>, scriptnode::data::pimpl::dynamicT<hise::FilterDataObject> >’}
+{aka ‘scriptnode::wrap::data<scriptnode::filters::FilterNodeBase<hise::MultiChannelFilter<hise::LinkwitzRiley>, 1>, scriptnode::data::pimpl::dynamicT<hise::FilterDataObject> >’}
+{aka ‘scriptnode::wrap::data<scriptnode::filters::FilterNodeBase<hise::MultiChannelFilter<hise::LinkwitzRiley>, 256>, scriptnode::data::pimpl::dynamicT<hise::FilterDataObject> >’}
+{aka ‘scriptnode::wrap::data<scriptnode::filters::FilterNodeBase<hise::MultiChannelFilter<hise::MoogFilterSubType>, 1>, scriptnode::data::pimpl::dynamicT<hise::FilterDataObject> >’}
+{aka ‘scriptnode::wrap::data<scriptnode::filters::FilterNodeBase<hise::MultiChannelFilter<hise::MoogFilterSubType>, 256>, scriptnode::data::pimpl::dynamicT<hise::FilterDataObject> >’}
+{aka ‘scriptnode::wrap::data<scriptnode::filters::FilterNodeBase<hise::MultiChannelFilter<hise::PhaseAllpassSubType>, 1>, scriptnode::data::pimpl::dynamicT<hise::FilterDataObject> >’}
+{aka ‘scriptnode::wrap::data<scriptnode::filters::FilterNodeBase<hise::MultiChannelFilter<hise::PhaseAllpassSubType>, 256>, scriptnode::data::pimpl::dynamicT<hise::FilterDataObject> >’}
+{aka ‘scriptnode::wrap::data<scriptnode::filters::FilterNodeBase<hise::MultiChannelFilter<hise::RingmodFilterSubType>, 1>, scriptnode::data::pimpl::dynamicT<hise::FilterDataObject> >’}
+{aka ‘scriptnode::wrap::data<scriptnode::filters::FilterNodeBase<hise::MultiChannelFilter<hise::RingmodFilterSubType>, 256>, scriptnode::data::pimpl::dynamicT<hise::FilterDataObject> >’}
+{aka ‘scriptnode::wrap::data<scriptnode::filters::FilterNodeBase<hise::MultiChannelFilter<hise::SimpleOnePoleSubType>, 1>, scriptnode::data::pimpl::dynamicT<hise::FilterDataObject> >’}
+{aka ‘scriptnode::wrap::data<scriptnode::filters::FilterNodeBase<hise::MultiChannelFilter<hise::SimpleOnePoleSubType>, 256>, scriptnode::data::pimpl::dynamicT<hise::FilterDataObject> >’}
+{aka ‘scriptnode::wrap::data<scriptnode::filters::FilterNodeBase<hise::MultiChannelFilter<hise::StateVariableEqSubType>, 1>, scriptnode::data::pimpl::dynamicT<hise::FilterDataObject> >’}
+{aka ‘scriptnode::wrap::data<scriptnode::filters::FilterNodeBase<hise::MultiChannelFilter<hise::StateVariableEqSubType>, 256>, scriptnode::data::pimpl::dynamicT<hise::FilterDataObject> >’}
+{aka ‘scriptnode::wrap::data<scriptnode::filters::FilterNodeBase<hise::MultiChannelFilter<hise::StateVariableFilterSubType>, 1>, scriptnode::data::pimpl::dynamicT<hise::FilterDataObject> >’}
+{aka ‘scriptnode::wrap::data<scriptnode::filters::FilterNodeBase<hise::MultiChannelFilter<hise::StateVariableFilterSubType>, 256>, scriptnode::data::pimpl::dynamicT<hise::FilterDataObject> >’}
+{aka ‘scriptnode::wrap::data<scriptnode::filters::FilterNodeBase<hise::MultiChannelFilter<hise::StaticBiquadSubType>, 1>, scriptnode::data::pimpl::dynamicT<hise::FilterDataObject> >’}
+{aka ‘scriptnode::wrap::data<scriptnode::filters::FilterNodeBase<hise::MultiChannelFilter<hise::StaticBiquadSubType>, 256>, scriptnode::data::pimpl::dynamicT<hise::FilterDataObject> >’}
+{aka ‘scriptnode::wrap::data<scriptnode::jdsp::jcompressor, scriptnode::data::dynamic::displaybuffer>’}
+{aka ‘scriptnode::wrap::data<scriptnode::jdsp::jlinkwitzriley, scriptnode::data::pimpl::dynamicT<hise::FilterDataObject> >’}
+{aka ‘scriptnode::wrap::data<scriptnode::wrap::illegal_poly<scriptnode::dynamics::dynamics_wrapper<chunkware_simple::SimpleComp> >, scriptnode::data::dynamic::displaybuffer>’}
+{aka ‘scriptnode::wrap::data<scriptnode::wrap::illegal_poly<scriptnode::dynamics::dynamics_wrapper<chunkware_simple::SimpleGate> >, scriptnode::data::dynamic::displaybuffer>’}
+{aka ‘scriptnode::wrap::data<scriptnode::wrap::illegal_poly<scriptnode::dynamics::dynamics_wrapper<chunkware_simple::SimpleLimit> >, scriptnode::data::dynamic::displaybuffer>’}
+#+end_export
+
+* Declaration of ‘using Parameter = class scriptnode::Parameter’ changes meaning of ‘Parameter’
+* Missing =template= keyword when using dependent types
+[[https://en.cppreference.com/w/cpp/language/dependent_name]]
+* Footnotes
+
+[fn:1] Odd. Somehow I still seem to have managed to do that.
+
+[fn:2] When I do a complete rebuild, e.g., when updating any header, they trigger multiple times, because every header is included in every compilation unit (Thanks Projucer!).
