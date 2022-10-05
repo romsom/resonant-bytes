@@ -1,0 +1,64 @@
+#+title: Source File Selection in HISE
+#+subtitle: 
+#+date: 2022-08-24
+#+tags[]: hise internals, gsoc22
+#+draft: true
+
+* COMMENT Call Hierarchy
+#+begin_src ditaa
+
+  a 
+   +---------------------+-------------------------------+
+   |                                                     |
+   |  comboBoxChanged(ComboBox* comboBoxThatHasChanged)  |
+   |                                                     |
+   +---------------------+-------------------------------+
+	   |                                             
+	   V                                             
+   +----------------------------------------+            
+   +                                        |            
+   |  setClass(const String& newClassName)  |            
+   |                                        |            
+   +----------------------------------------+            
+	   |                                             
+	   V                                             
+   +-------------------------------------------+         
+   |                                           |
+   |  updateClassId(Identifier, var newValue)  |        
+   |                                           |        
+   +-------------------------------------------+        
+	   |                                            
+	   V                                            
+   +---------------------------------------+            
+   |                                       |            
+   |  setWorkbench(WorkbenchData::Ptr nb)  |            
+   |                                       |            
+   +---------------------------------------+            
+#+end_src
+
+* Get ClassIds into ComboBox
+#+begin_src ditaa
+  ao
+
+
+   +---------------------------------------+
+   |                                       |
+   |  SnexMenuBar::rebuildComboBoxItems()  |
+   |                                       |
+   +---------------------------------------+
+      |
+      V
+   +---------------------------------------------------+
+   |                                                   |
+   |  StringArray SnexMenuBar::getAvailableClassIds()  |
+   |                                                   |
+   +---+-----------------------------------------------+
+      | 
+      V 
+   +--+---------------------------------------------------------------------+
+   |                                                                        |
+   |  parentNode->getRootNetwork()->codeManager.getClassList(getTypeId());  |
+   |                                                                        |
+   +------------------------------------------------------------------------+
+
+#+end_src
