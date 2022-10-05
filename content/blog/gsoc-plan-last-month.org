@@ -5,16 +5,59 @@
 #+draft: true
 
 * Remaining Tasks
+  - Parameters
+    - [ ] more widgets (checkbox, combobox, ...)
   - File Loading
     - [X] Scoped File Access
     - [X] Fill Drop Down Menu
-    - [ ] Handle File Selection
-      - [-] sourceId property
-    - [ ] Reload/compile Faust Source File
-      - [ ] sourceId listener: updateSourceId
-      - [ ] setWorkbench()
+    - [X] Handle File Selection
+      - [X] sourceId property
+    - [-] Reload/compile Faust Source File
+      - [X] sourceId listener: updateSourceId
+      - [ ] setWorkbench() -> File Editing
+    - [-] Source Switching
+      - [X] setClass
+      - [X] recompilation
+      - [X] fix SIGFPE
+	- [X] init samplerate at the apropriate time
+      - [X] synchro between UI and Audio threads?
+      - [X] parameter reinit, redraw
+      - [ ] undo?
+      - [ ] ValueTree consistency?
+      - [ ] Reload button
+  - File Editing
+    - keep track of which file is the current file
+    - have a component that listens to changes
+    - for now: use external editor
+      - refresh button
+      - open in external editor
   - Soundfile
-  - Static Compilation
+  - Static Compilation #A
+    - verknüpfe node instanz mit source file
+    - tell hise it should look at faust_nodes
+    - [-] split hi_faust into two modules: hi_faust and hi_faust_jit
+      - [X] copy hi_faust to hi_faust_jit
+      - [X] rename faust_node to faust_jit node and faust_base_node respectively
+      - [-] rename faust_wrapper to faust_jit_wrapper and faust_base_wrapper respectively
+      - [ ] avoid further virtual function calls by overriding process() in faust_base_node derived classes
+	- [ ] cast faust_base_wrapper pointer into known specific type and call non-virtual process() method
+	- [ ] maybe create template for process
+      - [ ] create templated faust_wrapper class
+      - [ ] create templated faust_node class
+      
+  - Debugging Features
+    - [ ] svg generation
   - FaustPathFactory: Draw Faust Logo in Node
 
+  - Save ClassId Property and reload correctly when creating node
+
+  - Display ClassId after selecting one from the Menu
+    
   - How not to get side-tracked by unintuitive code that needs cleanup
+
+  - Loose Ends
+    - polyphony
+    - soundfiles
+    - platform support cleanup
+    - ide integration
+    - 
