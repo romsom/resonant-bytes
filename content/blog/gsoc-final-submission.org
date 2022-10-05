@@ -67,9 +67,74 @@ $ git diff linux-reduce-warnings | diffstat
 
 
 * How to Build on Linux
+** Prerequisites
+The build process on Linux is quite straight-forward.
+You need GCC or Clang, the Projucer build tool, which comes with JUCE and Faust (Version 2.50.6 or later) installed.
+If you want to use Intel's IPP library, that needs to be installed, too.
+** Get the Code
+Clone the git-repo and checkout the =develop= branch or download a tarball.
+** Projucer
+Open the project file =projects/HISE Standalone.jucer= with Projucer.
+Projucer first needs to know a few paths on your system.
+They are configured under =File->Global Paths=.
+The =JUCE= path should be set to the =JUCE= directory that comes with HISE.
+The modules are in the =JUCE/modules= subdirectory.
+Set the =User Module= path to the HISE base directory.
+Rescan the paths and close the dialog.
+Select =Exporters->Linux Makefile= on the left and check if =USE_IPP= is set to the correct value, =0= is disabled, =1= is enabled.
+Finally press =CTRL-s= to save.[fn:3]
+** Build
+Go to =projects/standalone/Builds/LinuxMakefile/=.
+If you have =nproc= installed run =make CONFIG=Release -j$(nproc)=.
+Otherwise just type in the number of cpu cores you have by hand, e.g., =-j8=.
+** Run
+There should now be a binary =build/HISE Standalone=.
+Start Jack and then HISE and have fun!
+* How to Build on Windows
+** Prerequisites
+To build HISE with Faust under Windows you need Visual Studio 2017 installed as well as Faust 2.50.6 or later.
+JUCE already comes with HISE, so you don't need to download that.
+If you don't want to download everything by hand, I recommend you use =chocolatey=, a package manager for windows.
+
+#+begin_export
+choco install visualstudio2017-installer visualstudio2017community visualstudio2017-workload-vctools visualstudio2017-nativedesktop
+#+end_export
+
+If you want to use the just-in-time compiler you may need to install llvm:
+#+begin_export
+choco install llvm
+#+end_export
+
+If you want a bit of UNIX and/or need git, you can also install
+#+begin_export
+choco install git vim
+#+end_export
+
+Faust is not yet available in chocolatey, so you have to [[download it.
+* How to Use
+If you use Windows, you have to tell HISE where your installation of Faust is.
+Under =File->Preferences= set the =Faust Path= according to the config help text.
+
+With Faust integrated into HISE, you can add Faust nodes to a ScriptFX network.
+There you can add or import new Faust source files and libraries into the current HISE project.
+Their filenames should be valid C++ class identifiers, i.e., they may only contain alpha-numeric characters and the underscore =_= and may not start with a digit.
+Once you select a file from the drop down menu, HISE will try to compile it on-the-fly and start processing audio right away.
+It'll show an error in the log if there were any problems.[fn:4]
+
+Parameters you define in your Faust code appear in the Faust node automatically if the compilation was successful.
+
+There is no integration into HISE's IDE features yet, but there is a button to open the file in your text editor of choice and another one to recompile.
+
+When the faust code is ready and you want to release the project or when you need a slight performance boost over the just-in-time compiled code, you can also export the node and network and compile it statically.
+HISE has had that feature already for SNEX code and I was able to extend it for Faust node as well.
+Allow compilation for your ScriptFX network by right-clicking its title bar and enabling the corresponding option, then save the network.
+Click =Export->Compile DSP Networks as dll= and confirm that the network is present.
+You can open the generated Projucer project file and compile the library with your native toolchain as usual.
+When you start HISE afterwards, it'll find the dll and allow you to use the network and faust nodes in =HardcodedFX= and as separate nodes in =ScriptFX= without having to just-in-time compile the code again.
+
 * Remaining Issues and Missing Features
 ** General
-*** Control Knobs Don't Animate in Release Build
+*** Fix module paths (../../../HISE -> ../../)
 *** Soundfile Support is Missing
 *** HISE IDE Integration is Missing
 *** FaustMenuBar Needs More Buttons
@@ -78,18 +143,78 @@ $ git diff linux-reduce-warnings | diffstat
   - [ ] Open Faust Directory in File Manager
   - [X] Open Faust File in External Editor
   - [X] Recompile
+  - [ ] Remove
+    Needs mechanism to remove NodePropertyT from NodeTree
+  - [ ] Rename
+    Needs Remove mechanism
 *** Faust Node creates an empty file =.dsp= in the faust code directory
 *** Error Messaging
-Lots of =DBG= and =std::cout=, =std::cerr= atm
-**** Especially: Faust Compiler Errors
+**** DONE Especially: Faust Compiler Errors
 Should go to HISE Console
+**** TODO Check channel count and report error
+**** Error messages when exporting
+*** DONE Need to limit faust class characters to ones suitable for class and macro names
+especially "-" is a problem
+Lots of =DBG= and =std::cout=, =std::cerr= atm
+*** Release Build needs testing
+Create table with features and platforms/builds and check
+*** Polyphony
+*** MIDI
+*** Plugin
+*** static methods for channel count can be used instead of macros once faust 2.50.6 is released
+*** processFrame()
+*** remove superfluous delay in setup()
+*** Performance measurements
+  - jit delay
+  - jit performance vs. interpreter performance vs. native performance
+*** DONE cleanup hi_faust_lib options
+*** option dependencies?
+there is no c-interface for llvm-dsp yet
+or wrap llvm-dsp C-interface
+
+** Linux
+*** Control Knobs Don't Animate in Release Build
+*** Release Build Segfaults Sometimes When Opening Interface Designer
+#+begin_example
+Thread 1 "HISE Standalone" received signal SIGSEGV, Segmentation fault.
+0x00000000013796f3 in juce::Path::lineTo(float, float) ()
+(gdb) bt
+#0  0x00000000013796f3 in juce::Path::lineTo(float, float) ()
+#1  0x00000000013f5655 in juce::Path::addCentredArc(float, float, float, float, float, float, float, bool) [clone .part.0] ()
+#2  0x000000000115d441 in hise::GlobalHiseLookAndFeel::drawVectorRotaryKnob(juce::Graphics&, juce::Rectangle<float>, double, bool, bool, bool, bool, float) ()
+#3  0x000000000146706a in juce::Slider::paint(juce::Graphics&) ()
+#4  0x0000000000f31e25 in scriptnode::ParameterSlider::paint(juce::Graphics&) ()
+#5  0x000000000140b2e0 in juce::Component::paintComponentAndChildren(juce::Graphics&) ()
+...
+#+end_example
 ** Windows
 *** LLVM-JIT segfaults When Calling Any Function Into the Faust llvm-dsp Interface
-*** Interpreter Backend Fails to Build Because of Missing Function Symbols
+*** DONE Interpreter Backend Fails to Build Because of Missing Function Symbols
+Rebuilt faust.dll with those functions
+*** DONE Calls into C++ code still fail
+Wrap pure C interface instead
+*** Cleanup C interface wrapper
+Add compile time config option or better use #JUCE_WINDOWS
+*** DONE Save Faust Path as HISE Option
+*** faust.dll has to be copied to HISE
+*** Faust paths when exporting
+*** Faust path for dll loading
+*** Try llvm-jit again via C-Interface
+*** faust.dll paths
+*** Interpreter is slow
+
 ** macOS
 *** Build Errors
+*** Faust Library
+**** Faust Binary Release
+**** brew
+**** compile from source
 
 * Footnotes
 [fn:1] Both are not the =main=/=master= branch!
 
 [fn:2] The Projucer tool rewrites the project files on save, therefore the diffstat doesn't represent the actual amount of changes to =HISE Standalone.jucer=.
+
+[fn:3] There seems to be a bug with Projucer under Archlinux, where Projucer crashes right after finishing the first export job. If that still happens to you and the Makefile wasn't exported correctly, disable/remove all other exporters before saving to ensure the Makefile is exported first.
+
+[fn:4] If there are no errors but still no audio, check that the number of channels in the network and in the Faust code match. 
