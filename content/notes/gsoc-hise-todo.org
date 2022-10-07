@@ -1,0 +1,78 @@
+* Remaining Issues
+** General
+*** Fix module paths (../../../HISE -> ../../)
+*** Soundfile Support is Missing
+*** HISE IDE Integration is Missing
+*** FaustMenuBar Needs More Buttons
+  - [X] Import Faust File
+  - [X] Import Faust Library
+  - [ ] Open Faust Directory in File Manager
+  - [X] Open Faust File in External Editor
+  - [X] Recompile
+  - [ ] Remove
+    Needs mechanism to remove NodePropertyT from NodeTree
+  - [ ] Rename
+    Needs Remove mechanism
+*** Faust Node creates an empty file =.dsp= in the faust code directory
+*** Error Messaging
+**** DONE Especially: Faust Compiler Errors
+Should go to HISE Console
+**** TODO Check channel count and report error
+**** Error messages when exporting
+*** DONE Need to limit faust class characters to ones suitable for class and macro names
+especially "-" is a problem
+Lots of =DBG= and =std::cout=, =std::cerr= atm
+*** Release Build needs testing
+Create table with features and platforms/builds and check
+*** Polyphony
+*** MIDI
+*** Plugin
+*** static methods for channel count can be used instead of macros once faust 2.50.6 is released
+*** processFrame()
+*** remove superfluous delay in setup()
+*** Performance measurements
+  - jit delay
+  - jit performance vs. interpreter performance vs. native performance
+*** DONE cleanup hi_faust_lib options
+*** option dependencies?
+there is no c-interface for llvm-dsp yet
+or wrap llvm-dsp C-interface
+
+** Linux
+*** Control Knobs Don't Animate in Release Build
+*** Release Build Segfaults Sometimes When Opening Interface Designer
+#+begin_example
+Thread 1 "HISE Standalone" received signal SIGSEGV, Segmentation fault.
+0x00000000013796f3 in juce::Path::lineTo(float, float) ()
+(gdb) bt
+#0  0x00000000013796f3 in juce::Path::lineTo(float, float) ()
+#1  0x00000000013f5655 in juce::Path::addCentredArc(float, float, float, float, float, float, float, bool) [clone .part.0] ()
+#2  0x000000000115d441 in hise::GlobalHiseLookAndFeel::drawVectorRotaryKnob(juce::Graphics&, juce::Rectangle<float>, double, bool, bool, bool, bool, float) ()
+#3  0x000000000146706a in juce::Slider::paint(juce::Graphics&) ()
+#4  0x0000000000f31e25 in scriptnode::ParameterSlider::paint(juce::Graphics&) ()
+#5  0x000000000140b2e0 in juce::Component::paintComponentAndChildren(juce::Graphics&) ()
+...
+#+end_example
+-> probably not connected to Faust, but a JUCE issue
+** Windows
+*** LLVM-JIT segfaults When Calling Any Function Into the Faust llvm-dsp Interface
+*** DONE Interpreter Backend Fails to Build Because of Missing Function Symbols
+Rebuilt faust.dll with those functions
+*** DONE Calls into C++ code still fail
+Wrap pure C interface instead
+*** Cleanup C interface wrapper
+Add compile time config option or better use #JUCE_WINDOWS
+*** DONE Save Faust Path as HISE Option
+*** faust.dll has to be copied to HISE
+*** Faust paths when exporting
+*** Faust path for dll loading
+*** Try llvm-jit again via C-Interface
+*** faust.dll paths
+*** Interpreter is slow
+
+** macOS
+*** Build Errors
+*** Faust Library
+**** Faust Binary Release
+**** brew
+**** compile from source

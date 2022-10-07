@@ -10,7 +10,7 @@ You can change the Faust source code, click reload and now the same DSP node beh
 While this is really helpful during development, for the finalized product this approach has some drawbacks:
   - There is some latency when loading the plugin until the code will have been compiled
   - Even though the code doesn't change anymore, it will be recompiled every time [fn:1]
-  - The compiler (llvm) needs to be installed on every system the instrument will be used
+  - The compiler (llvm) needs to be installed on every system the instrument will be used on
 
 For those reasons we decided early on to have a statically compiled alternative for when the instrument is ready to be released.
 The basic idea is:

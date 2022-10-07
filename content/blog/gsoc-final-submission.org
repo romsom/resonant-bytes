@@ -6,64 +6,103 @@
 * Final Submission
 Over the last months I have been working on integrating the Faust DSP programming language into the HISE virtual instrument framework.
 At the time of this post, we are still working on merging [[https://github.com/romsom/HISE/tree/etxzat-develop][the fork with my work]] into [[https://github.com/christophhart/HISE/tree/develop][upstream HISE]].[fn:1]
-
+Until the merge is complete, you can clone my fork and checkout the =etxzat-develop= branch, but expect frequent changes, including history rewrites.
+Once fully merged the Faust integration will be part of the upstream HISE code base.
 * Code Change Summary
-My work focused on creating the 4 =hi_faust*= modules, but there were other parts of the code base, I had to work on as well.
-Here is a diffstat as an overview, which I will highlight the most important parts of in a bit:
-  - =hi_faust_types=: Syntactic wrapper for =libfaust='s type headers, because of [[https://resonant-bytes.de/blog/gsoc-namespaces/][namespace issues]].
+My efforts focused mainly on creating the 4 =hi_faust*= modules, but there were other parts of the code base, I had to work on as well.
+Here is a diffstat as an overview, with a description of the most important parts:
+  - =hi_faust_types=: Syntactic wrapper for =libfaust='s type headers, necessary because of [[https://resonant-bytes.de/blog/gsoc-namespaces/][namespace issues]].
   - =hi_faust_lib=: Syntactic wrapper for =libfaust= code (depends on =libfaust=)
-  - =hi_faust=: Static wrapper code to instantiate generated or JITed code (depends on =hi_faust_types=)
-  - =hi_faust_jit=: Wrapper for JIT, interpreter and static code generator (depends on =hi_faust_lib= and =hi_faust=)
+  - =hi_faust=: Static wrapper code to instantiate generated code (depends on =hi_faust_types=)
+  - =hi_faust_jit=: Wrapper for the just-in-time compiler (JIT), interpreter and static code generator (depends on =hi_faust_lib= and =hi_faust=)
   - =hi_backend=, =hi_snex=: Faust-specific additions to the code export functionality were made
   - =projects=: Build instructions were modified to include and configure the new modules[fn:2]
   - All other changes are rather small and very specific
 
 #+begin_example
-$ git diff linux-reduce-warnings | diffstat
- .gitignore                                                 |    4 
- JUCE/modules/juce_gui_extra/misc/juce_LiveConstantEditor.h |    2 
- hi_backend/backend/ProjectDllTemplate.cpp                  |   14 +
- hi_backend/hi_backend.h                                    |    2 
- hi_backend/snex_workbench/WorkbenchProcessor.cpp           |   48 +++++
- hi_dsp_library/node_api/helpers/node_ids.h                 |    2 
- hi_faust/FaustStaticWrapper.h                              |  109 ++++++++++++
- hi_faust/FaustUI.h                                         |  296 ++++++++++++++++++++++++++++++++++
- hi_faust/FaustWrapper.h                                    |  134 +++++++++++++++
- hi_faust/hi_faust.h                                        |   72 ++++++++
- hi_faust_jit/FaustJitNode.cpp                              |  219 +++++++++++++++++++++++++
- hi_faust_jit/FaustJitNode.h                                |   56 ++++++
- hi_faust_jit/FaustMenuBar.h                                |  165 +++++++++++++++++++
- hi_faust_jit/FaustWrapper.h                                |  302 +++++++++++++++++++++++++++++++++++
- hi_faust_jit/hi_faust_jit.cpp                              |    4 
- hi_faust_jit/hi_faust_jit.h                                |   81 +++++++++
- hi_faust_lib/faust_wrap/dsp/interpreter-dsp.cpp            |  114 +++++++++++++
- hi_faust_lib/faust_wrap/dsp/interpreter-dsp.h              |  344 ++++++++++++++++++++++++++++++++++++++++
- hi_faust_lib/faust_wrap/dsp/libfaust.cpp                   |   25 ++
- hi_faust_lib/faust_wrap/dsp/libfaust.h                     |  124 ++++++++++++++
- hi_faust_lib/faust_wrap/dsp/llvm-dsp.cpp                   |  143 ++++++++++++++++
- hi_faust_lib/faust_wrap/dsp/llvm-dsp.h                     |  512 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- hi_faust_lib/faust_wrap/export.h                           |   52 ++++++
- hi_faust_lib/hi_faust_lib.cpp                              |    3 
- hi_faust_lib/hi_faust_lib.h                                |   60 +++++++
- hi_faust_types/faust_wrap/dsp/dsp.h                        |  304 +++++++++++++++++++++++++++++++++++
- hi_faust_types/faust_wrap/export.h                         |   52 ++++++
- hi_faust_types/faust_wrap/gui/UI.h                         |   90 ++++++++++
- hi_faust_types/faust_wrap/gui/meta.h                       |   40 ++++
- hi_faust_types/hi_faust_types.h                            |   55 ++++++
- hi_modules/hi_modules.h                                    |    3 
- hi_modules/hi_modules_02.cpp                               |    1 
- hi_modules/nodes/HiseNodeFactory.cpp                       |    4 
- hi_scripting/scripting/scriptnode/api/NodeBase.cpp         |   12 +
- hi_scripting/scripting/scriptnode/api/NodeBase.h           |    1 
- hi_snex/hi_snex.h                                          |    1 
- hi_snex/snex_cpp_builder/snex_jit_ValueTreeBuilder.cpp     |   19 ++
- hi_snex/snex_cpp_builder/snex_jit_ValueTreeBuilder.h       |   12 +
- projects/plugin/HISE.jucer                                 |   12 -
- projects/standalone/HISE Standalone.jucer                  |  584 +++++++++++++++++++++++++++++++++++----------------------------------
- projects/standalone/JuceLibraryCode/AppConfig.h            |   54 ++++++
- projects/standalone/JuceLibraryCode/JuceHeader.h           |    9 -
- 42 files changed, 3840 insertions(+), 300 deletions(-)
+$ g .gitignore                                                            |    4 
+ JUCE/modules/juce_gui_extra/misc/juce_LiveConstantEditor.h            |    2 
+ hi_backend/backend/ProjectDllTemplate.cpp                             |   12 
+ hi_backend/hi_backend.h                                               |    2 
+ hi_backend/snex_workbench/WorkbenchProcessor.cpp                      |   59 +++
+ hi_core/hi_core/HiseSettings.cpp                                      |   10 
+ hi_core/hi_core/HiseSettings.h                                        |    1 
+ hi_dsp_library/node_api/helpers/node_ids.h                            |    2 
+ hi_faust/FaustStaticWrapper.h                                         |  109 ++++++
+ hi_faust/FaustUI.h                                                    |  296 +++++++++++++++++
+ hi_faust/FaustWrapper.h                                               |  176 ++++++++++
+ hi_faust/hi_faust.h                                                   |   72 ++++
+ hi_faust_jit/FaustJitNode.cpp                                         |  277 ++++++++++++++++
+ hi_faust_jit/FaustJitNode.h                                           |   62 +++
+ hi_faust_jit/FaustMenuBar.h                                           |  280 ++++++++++++++++
+ hi_faust_jit/FaustWrapper.h                                           |  291 +++++++++++++++++
+ hi_faust_jit/hi_faust_jit.cpp                                         |    4 
+ hi_faust_jit/hi_faust_jit.h                                           |   74 ++++
+ hi_faust_lib/faust_wrap/dsp/interpreter-dsp-c-backend-placeholder.cpp |  114 ++++++
+ hi_faust_lib/faust_wrap/dsp/interpreter-dsp-c-backend.cpp             |  130 +++++++
+ hi_faust_lib/faust_wrap/dsp/interpreter-dsp.cpp                       |  114 ++++++
+ hi_faust_lib/faust_wrap/dsp/interpreter-dsp.h                         |  344 ++++++++++++++++++++
+ hi_faust_lib/faust_wrap/dsp/libfaust-c-backend-placeholder.cpp        |   25 +
+ hi_faust_lib/faust_wrap/dsp/libfaust-c-backend.cpp                    |   39 ++
+ hi_faust_lib/faust_wrap/dsp/libfaust.cpp                              |   25 +
+ hi_faust_lib/faust_wrap/dsp/libfaust.h                                |  124 +++++++
+ hi_faust_lib/faust_wrap/dsp/llvm-dsp-c-backend-placeholder.cpp        |  140 ++++++++
+ hi_faust_lib/faust_wrap/dsp/llvm-dsp-c-backend.cpp                    |  156 +++++++++
+ hi_faust_lib/faust_wrap/dsp/llvm-dsp.cpp                              |  143 ++++++++
+ hi_faust_lib/faust_wrap/dsp/llvm-dsp.h                                |  512 ++++++++++++++++++++++++++++++
+ hi_faust_lib/faust_wrap/export.h                                      |   52 +++
+ hi_faust_lib/hi_faust_lib.cpp                                         |   19 +
+ hi_faust_lib/hi_faust_lib.h                                           |   78 ++++
+ hi_faust_lib/hi_faust_lib_02.cpp                                      |   10 
+ hi_faust_types/faust_wrap/dsp/dsp.h                                   |  304 ++++++++++++++++++
+ hi_faust_types/faust_wrap/export.h                                    |   52 +++
+ hi_faust_types/faust_wrap/gui/UI.h                                    |   90 +++++
+ hi_faust_types/faust_wrap/gui/meta.h                                  |   40 ++
+ hi_faust_types/hi_faust_types.h                                       |   55 +++
+ hi_modules/hi_modules.h                                               |    3 
+ hi_modules/hi_modules_02.cpp                                          |    1 
+ hi_modules/nodes/HiseNodeFactory.cpp                                  |    4 
+ hi_scripting/scripting/scriptnode/api/NodeBase.cpp                    |   12 
+ hi_scripting/scripting/scriptnode/api/NodeBase.h                      |    1 
+ hi_snex/hi_snex.h                                                     |    1 
+ hi_snex/snex_cpp_builder/snex_jit_ValueTreeBuilder.cpp                |   19 +
+ hi_snex/snex_cpp_builder/snex_jit_ValueTreeBuilder.h                  |   12 
+ projects/plugin/HISE.jucer                                            |   12 
+ projects/standalone/HISE Standalone.jucer                             |  584 ++++++++++++++++++-----------------
+ projects/standalone/JuceLibraryCode/AppConfig.h                       |   61 +++
+ projects/standalone/JuceLibraryCode/JuceHeader.h                      |    9 
+ 51 files changed, 4716 insertions(+), 302 deletions(-)it diff linux-reduce-warnings | diffstat
 #+end_example
+
+* How to Use
+** Configuration
+In HISE under =File->Preferences= set the =HISE Path= and =JUCE Path= for the export mechanism to work correctly.
+If you use Windows or want to use a different library location than the Faust compiler expects, you also have to tell HISE where your installation of Faust is.
+To do that set the =Faust Path= according to the config help text.
+Also (on Windows only) you need to copy the =faust.dll= from your Faust installation into the directory of your HISE executable.
+
+** DSP Development Workflow
+With Faust integrated into HISE, you can now add Faust nodes into a ScriptFX network.
+At the time of writing Faust in HISE can only be used for (monophonic) effects.
+Sound generator support (monophonic and polyphonic) is planned to be added not too far in the future, though.
+In the Faust node you can add or import new Faust source files and libraries into the current HISE project.
+Their file names must be valid C++ class identifiers, i.e., they may only contain alpha-numeric characters and the underscore =_= and may not start with a digit.
+After you added a file it will be copied to your project directory and appear as a choice in the node's drop-down menu for all Faust nodes in your current project.
+Once you select a file from the drop-down menu, HISE will try to compile it on-the-fly and start processing audio right away.
+It'll show an error in the log if there were any problems while compiling.[fn:4]
+
+Parameters you define in your Faust code appear in the Faust node automatically if the compilation was successful.
+They can be modulated just like any other parameter in HISE.
+
+While there is no integration into HISE's IDE features yet, there is a button to open the file in your text editor of choice and another one to recompile.
+
+** Export
+When the faust code is ready and you want to release the project or when you need a slight performance boost over the just-in-time compiled code, you can also export the node and network and compile it statically.
+HISE has had that feature already for SNEX code and I was able to extend it for Faust node as well.
+Allow compilation for your ScriptFX network by right-clicking its title bar and enabling the corresponding option, then save the network.
+Click =Export->Compile DSP Networks as dll= and confirm that the network is present.
+You can open the generated Projucer project file and compile the library with your native toolchain as usual.
+When you start HISE afterwards, it'll find the dll and allow you to use the network and faust nodes in =HardcodedFX= and as separate nodes in =ScriptFX= without having to just-in-time compile the code again.
 
 
 * How to Build on Linux
@@ -75,18 +114,20 @@ If you want to use Intel's IPP library, that needs to be installed, too.
 Clone the git-repo and checkout the =develop= branch or download a tarball.
 ** Projucer
 Open the project file =projects/HISE Standalone.jucer= with Projucer.
-Projucer first needs to know a few paths on your system.
-They are configured under =File->Global Paths=.
-The =JUCE= path should be set to the =JUCE= directory that comes with HISE.
-The modules are in the =JUCE/modules= subdirectory.
-Set the =User Module= path to the HISE base directory.
-Rescan the paths and close the dialog.
+Depending on if you want to use Intel's IPP library, you can enable or disable its usage in HISE.
 Select =Exporters->Linux Makefile= on the left and check if =USE_IPP= is set to the correct value, =0= is disabled, =1= is enabled.
 Finally press =CTRL-s= to save.[fn:3]
 ** Build
-Go to =projects/standalone/Builds/LinuxMakefile/=.
-If you have =nproc= installed run =make CONFIG=Release -j$(nproc)=.
+You can now go to =projects/standalone/Builds/LinuxMakefile/=.
+If you have =nproc= installed run the following command to make a Release build if you just want to use HISE:
+#+begin_src sh
+make CONFIG=Release -j$(nproc)=.
+#+end_src
 Otherwise just type in the number of cpu cores you have by hand, e.g., =-j8=.
+If you want to develop and/or debug HISE, a Debug build makes more sense:
+#+begin_src sh
+make -j$(nproc)=.
+#+end_src
 ** Run
 There should now be a binary =build/HISE Standalone=.
 Start Jack and then HISE and have fun!
@@ -100,115 +141,30 @@ If you don't want to download everything by hand, I recommend you use =chocolate
 choco install visualstudio2017-installer visualstudio2017community visualstudio2017-workload-vctools visualstudio2017-nativedesktop
 #+end_export
 
-If you want to use the just-in-time compiler you may need to install llvm:
-#+begin_export
-choco install llvm
-#+end_export
-
 If you want a bit of UNIX and/or need git, you can also install
 #+begin_export
 choco install git vim
 #+end_export
 
-Faust is not yet available in chocolatey, so you have to [[download it.
-* How to Use
-If you use Windows, you have to tell HISE where your installation of Faust is.
-Under =File->Preferences= set the =Faust Path= according to the config help text.
+Faust is not yet available in chocolatey, so you have to download and install it manually.
 
-With Faust integrated into HISE, you can add Faust nodes to a ScriptFX network.
-There you can add or import new Faust source files and libraries into the current HISE project.
-Their filenames should be valid C++ class identifiers, i.e., they may only contain alpha-numeric characters and the underscore =_= and may not start with a digit.
-Once you select a file from the drop down menu, HISE will try to compile it on-the-fly and start processing audio right away.
-It'll show an error in the log if there were any problems.[fn:4]
-
-Parameters you define in your Faust code appear in the Faust node automatically if the compilation was successful.
-
-There is no integration into HISE's IDE features yet, but there is a button to open the file in your text editor of choice and another one to recompile.
-
-When the faust code is ready and you want to release the project or when you need a slight performance boost over the just-in-time compiled code, you can also export the node and network and compile it statically.
-HISE has had that feature already for SNEX code and I was able to extend it for Faust node as well.
-Allow compilation for your ScriptFX network by right-clicking its title bar and enabling the corresponding option, then save the network.
-Click =Export->Compile DSP Networks as dll= and confirm that the network is present.
-You can open the generated Projucer project file and compile the library with your native toolchain as usual.
-When you start HISE afterwards, it'll find the dll and allow you to use the network and faust nodes in =HardcodedFX= and as separate nodes in =ScriptFX= without having to just-in-time compile the code again.
-
+** Projucer
+You need to add some paths to the "VisualStudio 2017" exporter in Projucer.
+Open the project file =projects/HISE Standalone.jucer= with Projucer.
+Add the path to the =include= directory inside your Faust installation (e.g., =C:\Program Files\Faust\include=) to the =Header Search Path= for both the =Debug= and the =Release= configuration.
+Similarly add the =lib= directory (e.g., =C:\Program Files\Faust\lib=) to the =Extra Library Search Paths=.
+Make sure the config option =HISE_FAUST_USE_LIBFAUST_C_INTERFACE= for the =hi_faust_lib= module is *enabled*.
+Finally press =CTRL-s= to save.
+** Build
+In Projucer click the Visual Studio symbol near the top of the window to open the project in Visual Studio.
+There you can make a Release build if you just want to use HISE or a Debug build if you want to debug and/or develop.
+Afterwards you need to copy the =faust.dll= from your Faust installation into the directory of your HISE executable.
 * Remaining Issues and Missing Features
-** General
-*** Fix module paths (../../../HISE -> ../../)
-*** Soundfile Support is Missing
-*** HISE IDE Integration is Missing
-*** FaustMenuBar Needs More Buttons
-  - [X] Import Faust File
-  - [X] Import Faust Library
-  - [ ] Open Faust Directory in File Manager
-  - [X] Open Faust File in External Editor
-  - [X] Recompile
-  - [ ] Remove
-    Needs mechanism to remove NodePropertyT from NodeTree
-  - [ ] Rename
-    Needs Remove mechanism
-*** Faust Node creates an empty file =.dsp= in the faust code directory
-*** Error Messaging
-**** DONE Especially: Faust Compiler Errors
-Should go to HISE Console
-**** TODO Check channel count and report error
-**** Error messages when exporting
-*** DONE Need to limit faust class characters to ones suitable for class and macro names
-especially "-" is a problem
-Lots of =DBG= and =std::cout=, =std::cerr= atm
-*** Release Build needs testing
-Create table with features and platforms/builds and check
-*** Polyphony
-*** MIDI
-*** Plugin
-*** static methods for channel count can be used instead of macros once faust 2.50.6 is released
-*** processFrame()
-*** remove superfluous delay in setup()
-*** Performance measurements
-  - jit delay
-  - jit performance vs. interpreter performance vs. native performance
-*** DONE cleanup hi_faust_lib options
-*** option dependencies?
-there is no c-interface for llvm-dsp yet
-or wrap llvm-dsp C-interface
-
-** Linux
-*** Control Knobs Don't Animate in Release Build
-*** Release Build Segfaults Sometimes When Opening Interface Designer
-#+begin_example
-Thread 1 "HISE Standalone" received signal SIGSEGV, Segmentation fault.
-0x00000000013796f3 in juce::Path::lineTo(float, float) ()
-(gdb) bt
-#0  0x00000000013796f3 in juce::Path::lineTo(float, float) ()
-#1  0x00000000013f5655 in juce::Path::addCentredArc(float, float, float, float, float, float, float, bool) [clone .part.0] ()
-#2  0x000000000115d441 in hise::GlobalHiseLookAndFeel::drawVectorRotaryKnob(juce::Graphics&, juce::Rectangle<float>, double, bool, bool, bool, bool, float) ()
-#3  0x000000000146706a in juce::Slider::paint(juce::Graphics&) ()
-#4  0x0000000000f31e25 in scriptnode::ParameterSlider::paint(juce::Graphics&) ()
-#5  0x000000000140b2e0 in juce::Component::paintComponentAndChildren(juce::Graphics&) ()
-...
-#+end_example
-** Windows
-*** LLVM-JIT segfaults When Calling Any Function Into the Faust llvm-dsp Interface
-*** DONE Interpreter Backend Fails to Build Because of Missing Function Symbols
-Rebuilt faust.dll with those functions
-*** DONE Calls into C++ code still fail
-Wrap pure C interface instead
-*** Cleanup C interface wrapper
-Add compile time config option or better use #JUCE_WINDOWS
-*** DONE Save Faust Path as HISE Option
-*** faust.dll has to be copied to HISE
-*** Faust paths when exporting
-*** Faust path for dll loading
-*** Try llvm-jit again via C-Interface
-*** faust.dll paths
-*** Interpreter is slow
-
-** macOS
-*** Build Errors
-*** Faust Library
-**** Faust Binary Release
-**** brew
-**** compile from source
+As mentioned in the workflow paragraph, there are some features missing which were initally planned.
+There are plans currently, to provide support for sound generator features and polyphony in the not-too-far future.
+HISE IDE integration is also likely to appear around the same time.
+There are also some features which weren't planned, notably plugin support
+Notably plugin support is currently untested.
 
 * Footnotes
 [fn:1] Both are not the =main=/=master= branch!
@@ -217,4 +173,4 @@ Add compile time config option or better use #JUCE_WINDOWS
 
 [fn:3] There seems to be a bug with Projucer under Archlinux, where Projucer crashes right after finishing the first export job. If that still happens to you and the Makefile wasn't exported correctly, disable/remove all other exporters before saving to ensure the Makefile is exported first.
 
-[fn:4] If there are no errors but still no audio, check that the number of channels in the network and in the Faust code match. 
+[fn:4] If there are no errors but the node still sounds bypassed, check that the number of channels in the network and in the Faust code match. 
