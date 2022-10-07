@@ -1,8 +1,8 @@
 #+title: GSoC: Final Submission
 #+subtitle: 
-#+date: 2022-09-27
+#+date: 2022-10-07
 #+tags[]: GSoC Faust HISE
-#+draft: true
+#+draft: false
 * Final Submission
 Over the last months I have been working on integrating the Faust DSP programming language into the HISE virtual instrument framework.
 At the time of this post, we are still working on merging [[https://github.com/romsom/HISE/tree/etxzat-develop][the fork with my work]] into [[https://github.com/christophhart/HISE/tree/develop][upstream HISE]].[fn:1]
@@ -163,8 +163,7 @@ Afterwards you need to copy the =faust.dll= from your Faust installation into th
 As mentioned in the workflow paragraph, there are some features missing which were initally planned.
 There are plans currently, to provide support for sound generator features and polyphony in the not-too-far future.
 HISE IDE integration is also likely to appear around the same time.
-There are also some features which weren't planned, notably plugin support
-Notably plugin support is currently untested.
+There are also some missing features which weren't planned for the GSoC project, but will probably follow later, notably plugin support.
 
 * Footnotes
 [fn:1] Both are not the =main=/=master= branch!
