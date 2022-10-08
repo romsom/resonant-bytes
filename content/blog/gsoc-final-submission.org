@@ -121,12 +121,12 @@ Finally press =CTRL-s= to save.[fn:3]
 You can now go to =projects/standalone/Builds/LinuxMakefile/=.
 If you have =nproc= installed run the following command to make a Release build if you just want to use HISE:
 #+begin_src sh
-make CONFIG=Release -j$(nproc)=.
+make CONFIG=Release -j$(nproc)
 #+end_src
 Otherwise just type in the number of cpu cores you have by hand, e.g., =-j8=.
 If you want to develop and/or debug HISE, a Debug build makes more sense:
 #+begin_src sh
-make -j$(nproc)=.
+make -j$(nproc)
 #+end_src
 ** Run
 There should now be a binary =build/HISE Standalone=.
