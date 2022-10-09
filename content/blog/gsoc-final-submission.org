@@ -16,7 +16,7 @@ Here is a diffstat as an overview, with a description of the most important part
   - =hi_faust=: Static wrapper code to instantiate generated code (depends on =hi_faust_types=)
   - =hi_faust_jit=: Wrapper for the just-in-time compiler (JIT), interpreter and static code generator (depends on =hi_faust_lib= and =hi_faust=)
   - =hi_backend=, =hi_snex=: Faust-specific additions to the code export functionality were made
-  - =projects=: Build instructions were modified to include and configure the new modules[fn:2]
+  - =projects=: Build instructions were modified to include and configure the new modules
   - All other changes are rather small and very specific
 
 #+begin_example
@@ -87,7 +87,7 @@ In the Faust node you can add or import new Faust source files and libraries int
 Their file names must be valid C++ class identifiers, i.e., they may only contain alpha-numeric characters and the underscore =_= and may not start with a digit.
 After you added a file it will be copied to your project directory and appear as a choice in the node's drop-down menu for all Faust nodes in your current project.
 Once you select a file from the drop-down menu, HISE will try to compile it on-the-fly and start processing audio right away.
-It'll show an error in the log if there were any problems while compiling.[fn:4]
+It'll show an error in the log if there were any problems while compiling.[fn:3]
 
 Parameters you define in your Faust code appear in the Faust node automatically if the compilation was successful.
 They can be modulated just like any other parameter in HISE.
@@ -114,7 +114,7 @@ Clone the git-repo and checkout the =develop= branch or download a tarball.
 Open the project file =projects/HISE Standalone.jucer= with Projucer.
 Depending on if you want to use Intel's IPP library, you can enable or disable its usage in HISE.
 Select =Exporters->Linux Makefile= on the left and check if =USE_IPP= is set to the correct value, =0= is disabled, =1= is enabled.
-Finally press =CTRL-s= to save.[fn:3]
+Finally press =CTRL-s= to save.[fn:2]
 ** Build
 You can now go to =projects/standalone/Builds/LinuxMakefile/=.
 If you have =nproc= installed run the following command to make a Release build if you just want to use HISE:
@@ -181,10 +181,8 @@ HISE IDE integration is also likely to appear around the same time.
 There are also some missing features which weren't planned for the GSoC project, but will probably follow later, notably plugin support.
 
 * Footnotes
-[fn:1] Both are not the =main=/=master= branch!
+[fn:1] Both are not the =main= / =master= branch!
 
-[fn:2] The Projucer tool rewrites the project files on save, therefore the diffstat doesn't represent the actual amount of changes to =HISE Standalone.jucer=.
+[fn:2] There seems to be a bug with Projucer under Archlinux, where Projucer crashes right after finishing the first export job. If that still happens to you and the Makefile wasn't exported correctly, disable/remove all other exporters before saving to ensure the Makefile is exported first.
 
-[fn:3] There seems to be a bug with Projucer under Archlinux, where Projucer crashes right after finishing the first export job. If that still happens to you and the Makefile wasn't exported correctly, disable/remove all other exporters before saving to ensure the Makefile is exported first.
-
-[fn:4] If there are no errors but the node still sounds bypassed, check that the number of channels in the network and in the Faust code match. 
+[fn:3] If there are no errors but the node still sounds bypassed, check that the number of channels in the network and in the Faust code match.
