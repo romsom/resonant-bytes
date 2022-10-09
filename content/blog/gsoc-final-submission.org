@@ -5,7 +5,7 @@
 #+draft: false
 * Final Submission
 Over the last months I have been working on integrating the Faust DSP programming language into the HISE virtual instrument framework.
-At the time of this post, we are still working on merging [[https://github.com/romsom/HISE/tree/etxzat-develop][the fork with my work]] into [[https://github.com/christophhart/HISE/tree/develop][upstream HISE]].[fn:1]
+At the time of this post, we are still working on [[https://github.com/christophhart/HISE/pull/356][merging]] [[https://github.com/romsom/HISE/tree/faust-integration][my fork]] into [[https://github.com/christophhart/HISE/tree/develop][upstream HISE]].[fn:1]
 Until the merge is complete, you can clone my fork and checkout the =etxzat-develop= branch, but expect frequent changes, including history rewrites.
 Once fully merged the Faust integration will be part of the upstream HISE code base.
 * Code Change Summary
@@ -20,58 +20,56 @@ Here is a diffstat as an overview, with a description of the most important part
   - All other changes are rather small and very specific
 
 #+begin_example
-$ g .gitignore                                                            |    4 
- JUCE/modules/juce_gui_extra/misc/juce_LiveConstantEditor.h            |    2 
- hi_backend/backend/ProjectDllTemplate.cpp                             |   12 
- hi_backend/hi_backend.h                                               |    2 
- hi_backend/snex_workbench/WorkbenchProcessor.cpp                      |   59 +++
- hi_core/hi_core/HiseSettings.cpp                                      |   10 
- hi_core/hi_core/HiseSettings.h                                        |    1 
- hi_dsp_library/node_api/helpers/node_ids.h                            |    2 
- hi_faust/FaustStaticWrapper.h                                         |  109 ++++++
- hi_faust/FaustUI.h                                                    |  296 +++++++++++++++++
- hi_faust/FaustWrapper.h                                               |  176 ++++++++++
- hi_faust/hi_faust.h                                                   |   72 ++++
- hi_faust_jit/FaustJitNode.cpp                                         |  277 ++++++++++++++++
- hi_faust_jit/FaustJitNode.h                                           |   62 +++
- hi_faust_jit/FaustMenuBar.h                                           |  280 ++++++++++++++++
- hi_faust_jit/FaustWrapper.h                                           |  291 +++++++++++++++++
- hi_faust_jit/hi_faust_jit.cpp                                         |    4 
- hi_faust_jit/hi_faust_jit.h                                           |   74 ++++
- hi_faust_lib/faust_wrap/dsp/interpreter-dsp-c-backend-placeholder.cpp |  114 ++++++
- hi_faust_lib/faust_wrap/dsp/interpreter-dsp-c-backend.cpp             |  130 +++++++
- hi_faust_lib/faust_wrap/dsp/interpreter-dsp.cpp                       |  114 ++++++
- hi_faust_lib/faust_wrap/dsp/interpreter-dsp.h                         |  344 ++++++++++++++++++++
- hi_faust_lib/faust_wrap/dsp/libfaust-c-backend-placeholder.cpp        |   25 +
- hi_faust_lib/faust_wrap/dsp/libfaust-c-backend.cpp                    |   39 ++
- hi_faust_lib/faust_wrap/dsp/libfaust.cpp                              |   25 +
- hi_faust_lib/faust_wrap/dsp/libfaust.h                                |  124 +++++++
- hi_faust_lib/faust_wrap/dsp/llvm-dsp-c-backend-placeholder.cpp        |  140 ++++++++
- hi_faust_lib/faust_wrap/dsp/llvm-dsp-c-backend.cpp                    |  156 +++++++++
- hi_faust_lib/faust_wrap/dsp/llvm-dsp.cpp                              |  143 ++++++++
- hi_faust_lib/faust_wrap/dsp/llvm-dsp.h                                |  512 ++++++++++++++++++++++++++++++
- hi_faust_lib/faust_wrap/export.h                                      |   52 +++
- hi_faust_lib/hi_faust_lib.cpp                                         |   19 +
- hi_faust_lib/hi_faust_lib.h                                           |   78 ++++
- hi_faust_lib/hi_faust_lib_02.cpp                                      |   10 
- hi_faust_types/faust_wrap/dsp/dsp.h                                   |  304 ++++++++++++++++++
- hi_faust_types/faust_wrap/export.h                                    |   52 +++
- hi_faust_types/faust_wrap/gui/UI.h                                    |   90 +++++
- hi_faust_types/faust_wrap/gui/meta.h                                  |   40 ++
- hi_faust_types/hi_faust_types.h                                       |   55 +++
- hi_modules/hi_modules.h                                               |    3 
- hi_modules/hi_modules_02.cpp                                          |    1 
- hi_modules/nodes/HiseNodeFactory.cpp                                  |    4 
- hi_scripting/scripting/scriptnode/api/NodeBase.cpp                    |   12 
- hi_scripting/scripting/scriptnode/api/NodeBase.h                      |    1 
- hi_snex/hi_snex.h                                                     |    1 
- hi_snex/snex_cpp_builder/snex_jit_ValueTreeBuilder.cpp                |   19 +
- hi_snex/snex_cpp_builder/snex_jit_ValueTreeBuilder.h                  |   12 
- projects/plugin/HISE.jucer                                            |   12 
- projects/standalone/HISE Standalone.jucer                             |  584 ++++++++++++++++++-----------------
- projects/standalone/JuceLibraryCode/AppConfig.h                       |   61 +++
- projects/standalone/JuceLibraryCode/JuceHeader.h                      |    9 
- 51 files changed, 4716 insertions(+), 302 deletions(-)it diff linux-reduce-warnings | diffstat
+$ git diff upstream/develop --stat
+ hi_backend/backend/ProjectDllTemplate.cpp                             |  12 +-
+ hi_backend/hi_backend.h                                               |   2 +-
+ hi_backend/snex_workbench/WorkbenchProcessor.cpp                      |  59 ++++++-
+ hi_core/hi_core/HiseSettings.cpp                                      |  10 +-
+ hi_core/hi_core/HiseSettings.h                                        |   1 +
+ hi_dsp_library/node_api/helpers/node_ids.h                            |   2 +-
+ hi_faust/FaustStaticWrapper.h                                         | 109 +++++++++++++
+ hi_faust/FaustUI.h                                                    | 296 +++++++++++++++++++++++++++++++++
+ hi_faust/FaustWrapper.h                                               | 176 ++++++++++++++++++++
+ hi_faust/hi_faust.h                                                   |  72 +++++++++
+ hi_faust_jit/FaustJitNode.cpp                                         | 277 +++++++++++++++++++++++++++++++
+ hi_faust_jit/FaustJitNode.h                                           |  62 +++++++
+ hi_faust_jit/FaustMenuBar.h                                           | 280 ++++++++++++++++++++++++++++++++
+ hi_faust_jit/FaustWrapper.h                                           | 291 +++++++++++++++++++++++++++++++++
+ hi_faust_jit/hi_faust_jit.cpp                                         |   4 +
+ hi_faust_jit/hi_faust_jit.h                                           |  74 +++++++++
+ hi_faust_lib/faust_wrap/dsp/interpreter-dsp-c-backend-placeholder.cpp | 111 +++++++++++++
+ hi_faust_lib/faust_wrap/dsp/interpreter-dsp-c-backend.cpp             | 126 +++++++++++++++
+ hi_faust_lib/faust_wrap/dsp/interpreter-dsp.cpp                       | 111 +++++++++++++
+ hi_faust_lib/faust_wrap/dsp/interpreter-dsp.h                         | 344 +++++++++++++++++++++++++++++++++++++++
+ hi_faust_lib/faust_wrap/dsp/libfaust-c-backend-placeholder.cpp        |  21 +++
+ hi_faust_lib/faust_wrap/dsp/libfaust-c-backend.cpp                    |  37 +++++
+ hi_faust_lib/faust_wrap/dsp/libfaust.cpp                              |  21 +++
+ hi_faust_lib/faust_wrap/dsp/libfaust.h                                | 124 ++++++++++++++
+ hi_faust_lib/faust_wrap/dsp/llvm-dsp-c-backend-placeholder.cpp        | 137 ++++++++++++++++
+ hi_faust_lib/faust_wrap/dsp/llvm-dsp-c-backend.cpp                    | 152 +++++++++++++++++
+ hi_faust_lib/faust_wrap/dsp/llvm-dsp.cpp                              | 140 ++++++++++++++++
+ hi_faust_lib/faust_wrap/dsp/llvm-dsp.h                                | 512 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ hi_faust_lib/faust_wrap/export.h                                      |  52 ++++++
+ hi_faust_lib/hi_faust_lib.cpp                                         |  32 ++++
+ hi_faust_lib/hi_faust_lib.h                                           |  78 +++++++++
+ hi_faust_lib/hi_faust_lib_02.cpp                                      |  21 +++
+ hi_faust_types/faust_wrap/dsp/dsp.h                                   | 301 ++++++++++++++++++++++++++++++++++
+ hi_faust_types/faust_wrap/export.h                                    |  52 ++++++
+ hi_faust_types/faust_wrap/gui/UI.h                                    |  90 +++++++++++
+ hi_faust_types/faust_wrap/gui/meta.h                                  |  40 +++++
+ hi_faust_types/hi_faust_types.h                                       |  55 +++++++
+ hi_modules/hi_modules.h                                               |   3 +-
+ hi_modules/hi_modules_02.cpp                                          |   1 +
+ hi_modules/nodes/HiseNodeFactory.cpp                                  |   4 +
+ hi_scripting/scripting/scriptnode/api/NodeBase.cpp                    |  12 ++
+ hi_scripting/scripting/scriptnode/api/NodeBase.h                      |   1 +
+ hi_snex/hi_snex.h                                                     |   1 +
+ hi_snex/snex_cpp_builder/snex_jit_ValueTreeBuilder.cpp                |  19 ++-
+ hi_snex/snex_cpp_builder/snex_jit_ValueTreeBuilder.h                  |  12 +-
+ projects/standalone/HISE Standalone.jucer                             |  27 +++-
+ projects/standalone/JuceLibraryCode/AppConfig.h                       |  25 +++
+ projects/standalone/JuceLibraryCode/JuceHeader.h                      |   4 +
+ 48 files changed, 4381 insertions(+), 12 deletions(-)
 #+end_example
 
 * How to Use
@@ -155,10 +153,27 @@ Add the path to the =include= directory inside your Faust installation (e.g., =C
 Similarly add the =lib= directory (e.g., =C:\Program Files\Faust\lib=) to the =Extra Library Search Paths=.
 Make sure the config option =HISE_FAUST_USE_LIBFAUST_C_INTERFACE= for the =hi_faust_lib= module is *enabled*.
 Finally press =CTRL-s= to save.
+
 ** Build
 In Projucer click the Visual Studio symbol near the top of the window to open the project in Visual Studio.
 There you can make a Release build if you just want to use HISE or a Debug build if you want to debug and/or develop.
 Afterwards you need to copy the =faust.dll= from your Faust installation into the directory of your HISE executable.
+
+* How to Build on ARM macOS
+** Prerequisites
+HISE isn't natively compatible with Apple's ARM processors, yet, but it runs well with the compatibility translation layer.
+In order to build HISE with Faust on macOS you need Xcode and Faust (Intel x86_64) installed.
+** Projucer
+After extracting the Faust archive, you need to add the paths to its =include= and =lib= directories to Projucer's =Header Search Paths= and =Extra Library Paths= respectively for both the =Debug= and =Release= configuration.
+In addition you need to add the =lib= path with the =-rpath= option to the =Extra Linker Flags=:
+#+begin_example
+-rpath /adjust/this/to/your/path/to/faust/lib
+#+end_example
+
+** Build
+In Projucer click the Xcode symbol near the top of the window to open the project in Xcode.
+There you can make a Release build if you just want to use HISE or a Debug build if you want to debug and/or develop.
+
 * Remaining Issues and Missing Features
 As mentioned in the workflow paragraph, there are some features missing which were initally planned.
 There are plans currently, to provide support for sound generator features and polyphony in the not-too-far future.
