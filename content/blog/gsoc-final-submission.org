@@ -123,7 +123,7 @@ It's also recommended to enable the LLVM backend for much better performance: =H
 Depending on if you want to use Intel's IPP library, you can enable or disable its usage in HISE.
 Select =Exporters->Linux Makefile= on the left and check if =USE_IPP= is set to the correct value, =0= is disabled, =1= is enabled.
 If in doubt, disable it.
-On the same page you also need to add =libfaust= to =External Link Libraries=.
+On the same page you also need to add =faust= to =External Link Libraries=.
 Finally press =CTRL-s= to save.[fn:1]
 ** Build
 You can now go to =projects/standalone/Builds/LinuxMakefile/=.
@@ -178,7 +178,7 @@ In order to build HISE with Faust on macOS you need Xcode and Faust (Intel x86_6
 If you want to use Intel's IPP library, that needs to be installed, too.
 ** Projucer
 After [[https://github.com/grame-cncm/faust/releases][downloading]] and extracting the Faust archive, open the =Exporters= pane.
-Under =Exporters->Xcode= you need to add =libfaust= to =External Link Libraries=.
+Under =Exporters->Xcode= you need to add =faust= to =External Link Libraries=.
 You need to add the paths to its =include= and =lib= directories to Projucer's =Header Search Paths= and =Extra Library Paths= respectively for both the =Debug= and =Release= configuration for =Xcode=.
 In addition you need to add the =lib= path with the =-rpath= option to the =Extra Linker Flags=:
 #+begin_example
