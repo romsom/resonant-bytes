@@ -3,11 +3,12 @@
 #+date: 2022-10-07
 #+tags[]: GSoC Faust HISE
 #+draft: false
+* Update [2022-10-11]
+After some last changes we finished merging the [[https://github.com/christophhart/HISE/pull/358][Pull Request]] and you can try out Faust on HISE from HISE's =develop= branch: [[https://github.com/christophhart/HISE/tree/develop]]
+I updated the configuration and build instructions accordingly.
 * Final Submission
-Over the last months I have been working on integrating the Faust DSP programming language into the HISE virtual instrument framework.
-At the time of this post, we are still working on [[https://github.com/christophhart/HISE/pull/356][merging]] [[https://github.com/romsom/HISE/tree/faust-integration][my fork]] into [[https://github.com/christophhart/HISE/tree/develop][upstream HISE]].[fn:1]
-Until the merge is complete, you can clone my fork and checkout the =etxzat-develop= branch, but expect frequent changes, including history rewrites.
-Once fully merged the Faust integration will be part of the upstream HISE code base.
+Over the last months I have been working on integrating the [[https://faust.grame.fr/][Faust DSP programming language]] into the [[https://hise.audio/][HISE virtual instrument framework]].
+With the result you can either add existing Faust DSP files to a HISE project for FX processing or use HISE as a development environment for Faust.
 * Code Change Summary
 My efforts focused mainly on creating the 4 =hi_faust*= modules, but there were other parts of the code base, I had to work on as well.
 Here is a diffstat as an overview, with a description of the most important parts:
@@ -87,7 +88,7 @@ In the Faust node you can add or import new Faust source files and libraries int
 Their file names must be valid C++ class identifiers, i.e., they may only contain alpha-numeric characters and the underscore =_= and may not start with a digit.
 After you added a file it will be copied to your project directory and appear as a choice in the node's drop-down menu for all Faust nodes in your current project.
 Once you select a file from the drop-down menu, HISE will try to compile it on-the-fly and start processing audio right away.
-It'll show an error in the log if there were any problems while compiling.[fn:3]
+It'll show an error in the log if there were any problems while compiling.
 
 Parameters you define in your Faust code appear in the Faust node automatically if the compilation was successful.
 They can be modulated just like any other parameter in HISE.
@@ -103,18 +104,27 @@ You can open the generated Projucer project file and compile the library with yo
 When you start HISE afterwards, it'll find the dll and allow you to use the network and faust nodes in =HardcodedFX= and as separate nodes in =ScriptFX= without having to just-in-time compile the code again.
 
 
+* Get the Code
+Clone the [[https://github.com/christophhart/HISE/tree/develop][HISE repository]] and checkout the =develop= branch or download a tarball.
+
 * How to Build on Linux
+These are the manual build instructions.
+I intent to create a PKGBUILD for us Arch Linux folks out there in the near future - but don't hold your breath!
 ** Prerequisites
 The build process on Linux is quite straight-forward.
 You need GCC or Clang, the Projucer build tool, which comes with JUCE and Faust (Version 2.50.6 or later) installed.
+If available you should prefer the faust package that comes with your distributions package manager.
+You can also [[https://github.com/grame-cncm/faust/releases][download]] it directly if you want to build it from source.
 If you want to use Intel's IPP library, that needs to be installed, too.
-** Get the Code
-Clone the git-repo and checkout the =develop= branch or download a tarball.
 ** Projucer
 Open the project file =projects/HISE Standalone.jucer= with Projucer.
+Under =Modules= enable the config options =HISE_INCLUDE_FAUST= and =HISE_INCLUDE_FAUST_JIT= for the =hi_faust= module.
+It's also recommended to enable the LLVM backend for much better performance: =HISE_FAUST_USE_LLVM_JIT=.
 Depending on if you want to use Intel's IPP library, you can enable or disable its usage in HISE.
 Select =Exporters->Linux Makefile= on the left and check if =USE_IPP= is set to the correct value, =0= is disabled, =1= is enabled.
-Finally press =CTRL-s= to save.[fn:2]
+If in doubt, disable it.
+On the same page you also need to add =libfaust= to =External Link Libraries=.
+Finally press =CTRL-s= to save.[fn:1]
 ** Build
 You can now go to =projects/standalone/Builds/LinuxMakefile/=.
 If you have =nproc= installed run the following command to make a Release build if you just want to use HISE:
@@ -132,7 +142,7 @@ Start Jack and then HISE and have fun!
 * How to Build on Windows
 ** Prerequisites
 To build HISE with Faust under Windows you need Visual Studio 2017 installed as well as Faust 2.50.6 or later.
-JUCE already comes with HISE, so you don't need to download that.
+JUCE already comes with HISE, so you don't need to download it separately.
 If you don't want to download everything by hand, I recommend you use =chocolatey=, a package manager for windows.
 
 #+begin_export
@@ -144,14 +154,16 @@ If you want a bit of UNIX and/or need git, you can also install
 choco install git vim
 #+end_export
 
-Faust is not yet available in chocolatey, so you have to download and install it manually.
+Faust is not yet available in chocolatey, so you have to [[https://github.com/grame-cncm/faust/releases][download]] and install it manually.
 
 ** Projucer
 You need to add some paths to the "VisualStudio 2017" exporter in Projucer.
 Open the project file =projects/HISE Standalone.jucer= with Projucer.
-Add the path to the =include= directory inside your Faust installation (e.g., =C:\Program Files\Faust\include=) to the =Header Search Path= for both the =Debug= and the =Release= configuration.
+Under =Exporters->Visual Studio 2017= you need to add =faust.lib= to =External Link Libraries=.
+Add the path to the =include= directory inside your Faust installation (e.g., =C:\Program Files\Faust\include=) to the =Header Search Path= for both the =Debug= and the =Release= configuration for =Visual Studio 2017=.
 Similarly add the =lib= directory (e.g., =C:\Program Files\Faust\lib=) to the =Extra Library Search Paths=.
-Make sure the config option =HISE_FAUST_USE_LIBFAUST_C_INTERFACE= for the =hi_faust_lib= module is *enabled*.
+Under =Modules= enable the config options =HISE_INCLUDE_FAUST= and =HISE_INCLUDE_FAUST_JIT= for the =hi_faust= module.
+It's also recommended to enable the LLVM backend for much better performance: =HISE_FAUST_USE_LLVM_JIT=.
 Finally press =CTRL-s= to save.
 
 ** Build
@@ -163,26 +175,29 @@ Afterwards you need to copy the =faust.dll= from your Faust installation into th
 ** Prerequisites
 HISE isn't natively compatible with Apple's ARM processors, yet, but it runs well with the compatibility translation layer.
 In order to build HISE with Faust on macOS you need Xcode and Faust (Intel x86_64) installed.
+If you want to use Intel's IPP library, that needs to be installed, too.
 ** Projucer
-After extracting the Faust archive, you need to add the paths to its =include= and =lib= directories to Projucer's =Header Search Paths= and =Extra Library Paths= respectively for both the =Debug= and =Release= configuration.
+After [[https://github.com/grame-cncm/faust/releases][downloading]] and extracting the Faust archive, open the =Exporters= pane.
+Under =Exporters->Xcode= you need to add =libfaust= to =External Link Libraries=.
+You need to add the paths to its =include= and =lib= directories to Projucer's =Header Search Paths= and =Extra Library Paths= respectively for both the =Debug= and =Release= configuration for =Xcode=.
 In addition you need to add the =lib= path with the =-rpath= option to the =Extra Linker Flags=:
 #+begin_example
 -rpath /adjust/this/to/your/path/to/faust/lib
 #+end_example
-
+Also check if =USE_IPP= is set to the correct value, =0= is disabled, =1= is enabled.
+If in doubt, disable it.
+In the =Modules= pane enable the config options =HISE_INCLUDE_FAUST= and =HISE_INCLUDE_FAUST_JIT= for the =hi_faust= module.
+It's also recommended to enable the LLVM backend for much better performance: =HISE_FAUST_USE_LLVM_JIT=.
+Finally press =CTRL-s= to save.
 ** Build
 In Projucer click the Xcode symbol near the top of the window to open the project in Xcode.
 There you can make a Release build if you just want to use HISE or a Debug build if you want to debug and/or develop.
 
 * Remaining Issues and Missing Features
 As mentioned in the workflow paragraph, there are some features missing which were initally planned.
-There are plans currently, to provide support for sound generator features and polyphony in the not-too-far future.
+There currently *are* plans, to provide support for sound generator features and polyphony in the not-too-far future.
 HISE IDE integration is also likely to appear around the same time.
 There are also some missing features which weren't planned for the GSoC project, but will probably follow later, notably plugin support.
 
 * Footnotes
-[fn:1] Both are not the =main= / =master= branch!
-
-[fn:2] There seems to be a bug with Projucer under Archlinux, where Projucer crashes right after finishing the first export job. If that still happens to you and the Makefile wasn't exported correctly, disable/remove all other exporters before saving to ensure the Makefile is exported first.
-
-[fn:3] If there are no errors but the node still sounds bypassed, check that the number of channels in the network and in the Faust code match.
+[fn:1] There seems to be a bug with Projucer under Archlinux, where Projucer crashes right after finishing the first export job. If that still happens to you and the Makefile wasn't exported correctly, disable/remove all other exporters before saving to ensure the Makefile is exported first.
